@@ -1,12 +1,12 @@
-import { prisma } from "@/lib/db";
+// app/api/auth/login/route.ts
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { signToken } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { email, password } = body;
+    const { email, password } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
@@ -17,24 +17,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    // generate JWT token
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      process.env.JWT_SECRET as string,
-      { expiresIn: "7d" } // valid for 7 days
-    );
+    const token = signToken({ id: user.id, email: user.email }, "7d");
 
-    return NextResponse.json({
-      token,
-      user: { id: user.id, email: user.email, name: user.name },
-    });
-  } catch (error) {
-    console.error("Error logging in:", error);
-    return NextResponse.json({ error: "Failed to login" }, { status: 500 });
+    const safeUser = { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt };
+
+    return NextResponse.json({ token, user: safeUser });
+  } catch (err) {
+    console.error("login error", err);
+    return NextResponse.json({ error: "Login failed" }, { status: 500 });
   }
 }
