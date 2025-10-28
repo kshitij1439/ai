@@ -34,7 +34,7 @@
     "**/*.tsx",
     "next-env.d.ts",
     ".next/types/**/*.ts"
-, "scripts/seed.mjs"  ],
+, "scripts/seed.mjs" ,"global.d.ts" ],
   "exclude": [
     "node_modules"
   ]
