@@ -1,16 +1,15 @@
 import { prisma } from "@/lib/db";
-import { chatWithLLM } from "@/lib/llm";
 import { NextResponse } from "next/server";
+import { aiService } from "@/lib/ai";
 
-interface Params {
-    params: { conversationId: string };
+interface RouteContext {
+    params: Promise<{ conversationId: string }>;
 }
 
-export async function GET(req: Request, { params }: Params) {
-    const { conversationId } = params;
+export async function GET(req: Request, { params }: RouteContext) {
+    const { conversationId } = await params;
 
     try {
-        // Check if conversation exists
         const conversation = await prisma.conversation.findUnique({
             where: { id: conversationId },
         });
@@ -24,7 +23,7 @@ export async function GET(req: Request, { params }: Params) {
 
         const messages = await prisma.message.findMany({
             where: { conversationId },
-            orderBy: { createdAt: "asc" }, // chronological order
+            orderBy: { createdAt: "asc" },
         });
 
         return NextResponse.json(messages);
@@ -37,12 +36,12 @@ export async function GET(req: Request, { params }: Params) {
     }
 }
 
-export async function POST(req: Request, { params }: Params) {
-    const { conversationId } = params;
+export async function POST(req: Request, { params }: RouteContext) {
+    const { conversationId } = await params;
 
     try {
         const body = await req.json();
-        const { role, content, tokens } = body;
+        const { role, content, tokens, model = "gemini-2.5-flash-lite" } = body;
 
         if (!role || !content) {
             return NextResponse.json(
@@ -51,9 +50,11 @@ export async function POST(req: Request, { params }: Params) {
             );
         }
 
-        // Check if conversation exists
         const conversation = await prisma.conversation.findUnique({
             where: { id: conversationId },
+            include: {
+                messages: { orderBy: { createdAt: "desc" } },
+            },
         });
 
         if (!conversation) {
@@ -63,7 +64,6 @@ export async function POST(req: Request, { params }: Params) {
             );
         }
 
-        // Save user message
         const message = await prisma.message.create({
             data: { conversationId, role, content, tokens },
         });
@@ -71,7 +71,22 @@ export async function POST(req: Request, { params }: Params) {
         let assistantMessage = null;
 
         if (role === "user") {
-            const assistantResponse = await chatWithLLM(content, "llama3");
+            const conversationHistory = [
+                ...conversation.messages.map((msg) => ({
+                    role: msg.role as "user" | "assistant" | "system",
+                    content: msg.content,
+                })),
+                { role: "user" as const, content },
+            ];
+
+            const assistantResponse = await aiService.chat(
+                conversationHistory,
+                model,
+                {
+                    temperature: 0.7,
+                    maxTokens: 2048,
+                }
+            );
 
             if (assistantResponse) {
                 assistantMessage = await prisma.message.create({
