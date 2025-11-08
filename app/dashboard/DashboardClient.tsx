@@ -6,6 +6,7 @@ import { Session } from "next-auth";
 import { useState, useEffect } from "react";
 import ConversationList from "@/components/chat/ConversationList";
 import ChatWindow from "@/components/chat/ChatWindow";
+import Loading from "../chat/[conversationId]/loading";
 
 interface DashboardClientProps {
     session: Session | null;
@@ -13,6 +14,7 @@ interface DashboardClientProps {
 
 interface Conversation {
     id: string;
+    userId:string;
     title: string | null;
     model: string;
     createdAt: string;
@@ -38,7 +40,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                 const data = await res.json();
                 // Filter conversations for current user
                 const userConversations = data.filter(
-                    (conv: any) => conv.userId === session?.user?.id
+                    (conv:Conversation) => conv.userId === session?.user?.id
                 );
                 setConversations(userConversations);
             }
@@ -120,7 +122,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                 <div className="flex-1 overflow-y-auto">
                     {loading ? (
                         <div className="p-4 text-center text-gray-500">
-                            Loading...
+                            <Loading/>
                         </div>
                     ) : (
                         <ConversationList
