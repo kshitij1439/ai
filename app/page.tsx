@@ -158,7 +158,7 @@ export default function Home() {
             </h1>
           </div>
           <p className="text-slate-300 text-lg">
-            Experience the power of Google's most advanced AI model
+            Experience the power of Google most advanced AI model
           </p>
         </motion.div>
 
@@ -196,7 +196,7 @@ export default function Home() {
                           Start a conversation
                         </h3>
                         <p className="text-slate-300">
-                          Ask me anything! I'm powered by Google's Gemini AI.
+                          Ask me anything! I am powered by Google Gemini AI.
                         </p>
                       </motion.div>
                     )}
