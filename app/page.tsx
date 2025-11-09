@@ -97,31 +97,13 @@ export default function LandingPage() {
             transition={{ duration: 0.8 }}
             className="text-center max-w-5xl mx-auto"
           >
-            {/* Logo/Icon */}
-            <motion.div
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ duration: 1, type: "spring" }}
-              className="flex justify-center mb-8"
-            >
-              <div className="relative">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className="absolute inset-0 bg-emerald-500 rounded-full blur-2xl opacity-30"
-                />
-                <div className="relative p-6 bg-emerald-500 rounded-full">
-                  <Sparkles className="h-16 w-16 text-black" />
-                </div>
-              </div>
-            </motion.div>
 
             {/* Main Heading */}
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-violet-400 to-white bg-clip-text text-transparent leading-tight"
+              className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-violet-400 to-white bg-clip-text text-transparent leading-tight mt-20"
             >
               The Future of AI
               <br />
