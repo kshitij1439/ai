@@ -9,6 +9,8 @@ class AIService {
     this.providers.set("ollama", new OllamaProvider());
     
     const googleApiKey = process.env.GOOGLE_AI_KEY;
+    console.log("GOOGLE KEY:", process.env.GOOGLE_AI_KEY);
+
     if (googleApiKey) {
       this.providers.set("google", new GoogleAIProvider(googleApiKey));
     }
@@ -21,7 +23,7 @@ class AIService {
     
     if (["gemini-2.5-flash-lite", "gemini-pro", "gemini-nano", "veo-3"].includes(model)) {
       const provider = this.providers.get("google");
-      if (!provider) throw new Error("Google AI provider not initialized. Add NEXT_PUBLIC_GOOGLE_AI_KEY to .env");
+      if (!provider) throw new Error("Google AI provider not initialized. Add GOOGLE_AI_KEY to .env");
       return provider;
     }
 
