@@ -9,7 +9,7 @@ class AIService {
     this.providers.set("ollama", new OllamaProvider());
     
     const googleApiKey = process.env.GOOGLE_AI_KEY;
-    console.log("GOOGLE KEY:", process.env.GOOGLE_AI_KEY);
+    // console.log("GOOGLE KEY:", process.env.GOOGLE_AI_KEY);
 
     if (googleApiKey) {
       this.providers.set("google", new GoogleAIProvider(googleApiKey));
