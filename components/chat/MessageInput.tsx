@@ -25,7 +25,7 @@ export default function MessageInput({ onSend, disabled }: MessageInputProps) {
   };
 
   return (
-    <div className="flex gap-2 items-end">
+    <div className="flex gap-2 items-center">
       <div className="flex-1 relative">
         <textarea
           value={message}
