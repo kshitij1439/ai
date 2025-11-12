@@ -14,7 +14,7 @@ interface DashboardClientProps {
 
 interface Conversation {
     id: string;
-    userId:string;
+    userId: string;
     title: string | null;
     model: string;
     createdAt: string;
@@ -26,6 +26,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
         string | null
     >(null);
     const [loading, setLoading] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     useEffect(() => {
         if (session?.user) {
@@ -40,7 +41,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                 const data = await res.json();
                 // Filter conversations for current user
                 const userConversations = data.filter(
-                    (conv:Conversation) => conv.userId === session?.user?.id
+                    (conv: Conversation) => conv.userId === session?.user?.id
                 );
                 setConversations(userConversations);
             }
@@ -69,15 +70,21 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                 const newConversation = await res.json();
                 setConversations([newConversation, ...conversations]);
                 setSelectedConversationId(newConversation.id);
+                setSidebarOpen(false); // Close sidebar on mobile after creating
             }
         } catch (error) {
             console.error("Failed to create conversation:", error);
         }
     };
 
+    const handleSelectConversation = (id: string) => {
+        setSelectedConversationId(id);
+        setSidebarOpen(false); // Close sidebar on mobile after selecting
+    };
+
     if (!session) {
         return (
-            <div className="text-center mt-20">
+            <div className="text-center mt-20 px-4">
                 <p>{"You're not logged in."}</p>
                 <a href="/login" className="text-blue-600 underline">
                     Go to login
@@ -87,23 +94,60 @@ export default function DashboardClient({ session }: DashboardClientProps) {
     }
 
     return (
-        <div className="flex h-screen bg-gray-50">
+        <div className="flex h-screen bg-gray-50 overflow-hidden">
+            {/* Mobile Overlay */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+            <div
+                className={`
+                    fixed lg:relative inset-y-0 left-0 z-30
+                    w-80 bg-white border-r border-gray-200 flex flex-col
+                    transform transition-transform duration-300 ease-in-out
+                    ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+                    lg:translate-x-0
+                `}
+            >
                 {/* Header */}
                 <div className="p-4 border-b border-gray-200">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-bold text-gray-800">
                             Conversations
                         </h2>
-                        <button
-                            onClick={() => signOut({ callbackUrl: "/login" })}
-                            className="text-sm text-red-600 hover:text-red-700"
-                        >
-                            Logout
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => signOut({ callbackUrl: "/login" })}
+                                className="text-sm text-red-600 hover:text-red-700"
+                            >
+                                Logout
+                            </button>
+                            {/* Close button for mobile */}
+                            <button
+                                onClick={() => setSidebarOpen(false)}
+                                className="lg:hidden text-gray-600 hover:text-gray-800"
+                            >
+                                <svg
+                                    className="w-6 h-6"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 truncate">
                         {session.user?.name || session.user?.email}
                     </p>
                 </div>
@@ -112,7 +156,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                 <div className="p-4">
                     <button
                         onClick={createNewConversation}
-                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg  transition"
                     >
                         + New Conversation
                     </button>
@@ -129,22 +173,57 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                         <ConversationList
                             conversations={conversations}
                             selectedId={selectedConversationId}
-                            onSelect={setSelectedConversationId}
+                            onSelect={handleSelectConversation}
                         />
                     )}
                 </div>
             </div>
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col w-full lg:w-auto">
+                {/* Mobile Header */}
+                {selectedConversationId && (
+                    <div className="lg:hidden flex items-center gap-3 p-4 bg-white border-b border-gray-200">
+                        <button
+                            onClick={() => setSidebarOpen(true)}
+                            className="text-gray-600 hover:text-gray-800"
+                        >
+                            <svg
+                                className="w-6 h-6"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 6h16M4 12h16M4 18h16"
+                                />
+                            </svg>
+                        </button>
+                        <h1 className="text-lg font-semibold text-gray-800 truncate">
+                            {conversations.find((c) => c.id === selectedConversationId)
+                                ?.title || "Chat"}
+                        </h1>
+                    </div>
+                )}
+
                 {selectedConversationId ? (
                     <ChatWindow
                         conversationId={selectedConversationId}
                         userId={session.user.id || ""}
                     />
                 ) : (
-                    <div className="flex-1 flex items-center justify-center text-gray-400">
+                    <div className="flex-1 flex items-center justify-center text-gray-400 p-4">
                         <div className="text-center">
+                            {/* Menu button when no conversation selected */}
+                            <button
+                                onClick={() => setSidebarOpen(true)}
+                                className="lg:hidden mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                            >
+                                Open Menu
+                            </button>
                             <svg
                                 className="w-16 h-16 mx-auto mb-4"
                                 fill="none"
@@ -158,7 +237,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                                     d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                                 />
                             </svg>
-                            <p className="text-lg">
+                            <p className="text-lg px-4">
                                 Select a conversation or start a new one
                             </p>
                         </div>

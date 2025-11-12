@@ -108,10 +108,10 @@ export default function ChatWindow({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex-1 flex flex-col bg-white/50 backdrop-blur-sm h-screen"
+      className="flex flex-col bg-white/50 backdrop-blur-sm h-full"
     >
       {/* Messages Area */}
-      <div className="relative flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
         {loading ? (
           <motion.div
             initial={{ opacity: 0 }}
@@ -119,7 +119,7 @@ export default function ChatWindow({
             className="flex items-center justify-center h-full"
           >
             <div className="text-center">
-              <Loader2 className="w-12 h-12 mx-auto text-blue-600 animate-spin mb-3" />
+              <Loader2 className="w-12 h-12 mx-auto text-purple-600 animate-spin mb-3" />
               <p className="text-gray-500">Loading messages...</p>
             </div>
           </motion.div>
@@ -141,7 +141,7 @@ export default function ChatWindow({
                   ease: "easeInOut",
                 }}
               >
-                <Bot className="w-20 h-20 mx-auto text-blue-500 mb-4" />
+                <Bot className="w-20 h-20 mx-auto text-purple-500 mb-4" />
               </motion.div>
               <p className="text-lg text-gray-600 font-medium">Start the conversation</p>
               <p className="text-sm text-gray-400 mt-2">Send a message to begin</p>
@@ -158,12 +158,12 @@ export default function ChatWindow({
           </div>
         )}
       </div>
-
+  
       {/* Input Area */}
       <motion.div
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="border-t border-gray-200/50 p-6 bg-white/80 backdrop-blur-xl"
+        className="border-t border-gray-200/50 p-3 sm:p-6 bg-white/80 backdrop-blur-xl flex-shrink-0"
       >
         <div className="max-w-4xl mx-auto">
           <MessageInput onSend={sendMessage} disabled={sending} />
