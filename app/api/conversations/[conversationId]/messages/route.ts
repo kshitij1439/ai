@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { aiService } from "@/lib/ai";
+import { authOptions } from "@/lib/auth";
+import { getServerSession } from "next-auth";
 
 interface RouteContext {
     params: Promise<{ conversationId: string }>;
@@ -8,7 +10,11 @@ interface RouteContext {
 
 export async function GET(req: Request, { params }: RouteContext) {
     const { conversationId } = await params;
+    const session = await getServerSession(authOptions);
 
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     try {
         const conversation = await prisma.conversation.findUnique({
             where: { id: conversationId },
@@ -38,7 +44,11 @@ export async function GET(req: Request, { params }: RouteContext) {
 
 export async function POST(req: Request, { params }: RouteContext) {
     const { conversationId } = await params;
+    const session = await getServerSession(authOptions);
 
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     try {
         const body = await req.json();
         const { role, content, tokens, model = "gemini-2.5-flash-lite" } = body;
