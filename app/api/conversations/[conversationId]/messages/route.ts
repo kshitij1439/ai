@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { aiService } from "@/lib/ai";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
+import { memoryService } from "@/lib/ai/memory";
 
 interface RouteContext {
     params: Promise<{ conversationId: string }>;
@@ -13,7 +14,7 @@ export async function GET(req: Request, { params }: RouteContext) {
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     try {
         const conversation = await prisma.conversation.findUnique({
@@ -47,7 +48,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     try {
         const body = await req.json();
@@ -81,20 +82,34 @@ export async function POST(req: Request, { params }: RouteContext) {
         let assistantMessage = null;
 
         if (role === "user") {
+            const memoryContext = await memoryService.getConversationContext(
+                session.user.id,
+                content,
+                conversationId
+            );
+
             const conversationHistory = [
-                ...conversation.messages.map((msg) => ({
-                    role: msg.role as "user" | "assistant" | "system",
-                    content: msg.content,
-                })),
+                ...conversation.messages.map(
+                    (msg: { role: string; content: string }) => ({
+                        role: msg.role as "user" | "assistant" | "system",
+                        content: msg.content,
+                    })
+                ),
                 { role: "user" as const, content },
             ];
+            if (memoryContext) {
+                conversationHistory.unshift({
+                    role: "system",
+                    content: `You are a helpful AI assistant with memory. Here's what you know about the user and relevant past conversations:\n\n${memoryContext}\n\nUse this context naturally in your responses when relevant, but don't explicitly mention that you're using memory.`,
+                });
+            }
 
             const assistantResponse = await aiService.chat(
                 conversationHistory,
                 model,
                 {
                     temperature: 0.7,
-                    maxTokens: 2048,
+                    maxTokens: 5000,
                 }
             );
 
@@ -106,6 +121,26 @@ export async function POST(req: Request, { params }: RouteContext) {
                         content: assistantResponse,
                     },
                 });
+
+                await memoryService.storeConversationMessage(
+                    conversationId,
+                    session.user.id,
+                    content,
+                    assistantResponse,
+                    assistantMessage.id
+                );
+
+                await memoryService.addMemory(
+                    session.user.id,
+                    [
+                        { role: "user", content },
+                        { role: "assistant", content: assistantResponse },
+                    ],
+                    {
+                        conversationId,
+                        timestamp: new Date().toISOString(),
+                    }
+                );
             }
         }
 
