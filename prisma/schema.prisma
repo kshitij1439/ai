@@ -16,8 +16,6 @@ model User {
   emailVerified DateTime?
   createdAt     DateTime       @default(now())
   conversations Conversation[]
-  
-  // NextAuth relations
   accounts      Account[]
   sessions      Session[]
 }
@@ -69,9 +67,10 @@ model Conversation {
 model Message {
   id             String       @id @default(cuid())
   conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   role           String
-  content        String
+  content        String       @db.Text
   tokens         Int?
+  metadata       Json?        // Store tool usage info here
   createdAt      DateTime     @default(now())
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
 }

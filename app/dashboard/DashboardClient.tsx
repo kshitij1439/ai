@@ -85,8 +85,11 @@ export default function DashboardClient({ session }: DashboardClientProps) {
     if (!session) {
         return (
             <div className="text-center mt-20 px-4">
-                <p>{"You're not logged in."}</p>
-                <a href="/login" className="text-blue-600 underline">
+                <p className="text-gray-200">{"You're not logged in."}</p>
+                <a
+                    href="/login"
+                    className="text-blue-400 underline hover:text-blue-300"
+                >
                     Go to login
                 </a>
             </div>
@@ -94,11 +97,11 @@ export default function DashboardClient({ session }: DashboardClientProps) {
     }
 
     return (
-        <div className="flex h-screen bg-gray-50 overflow-hidden">
+        <div className="flex h-screen bg-black overflow-hidden text-gray-100">
             {/* Mobile Overlay */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-20 lg:hidden"
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
@@ -106,33 +109,36 @@ export default function DashboardClient({ session }: DashboardClientProps) {
             {/* Sidebar */}
             <div
                 className={`
-                    fixed lg:relative inset-y-0 left-0 z-30
-                    w-80 bg-white border-r border-gray-200 flex flex-col
-                    transform transition-transform duration-300 ease-in-out
-                    ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-                    lg:translate-x-0
-                `}
+        fixed lg:relative inset-y-0 left-0 z-30
+        w-80 flex flex-col
+        transform transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        lg:translate-x-0
+        bg-black border-r border-zinc-800
+    `}
             >
                 {/* Header */}
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-zinc-800">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-bold text-gray-800">
+                        <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
                             Conversations
                         </h2>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => signOut({ callbackUrl: "/login" })}
-                                className="text-sm text-red-600 hover:text-red-700"
+                                onClick={() =>
+                                    signOut({ callbackUrl: "/login" })
+                                }
+                                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors px-2 py-1 rounded hover:bg-zinc-900"
                             >
                                 Logout
                             </button>
                             {/* Close button for mobile */}
                             <button
                                 onClick={() => setSidebarOpen(false)}
-                                className="lg:hidden text-gray-600 hover:text-gray-800"
+                                className="lg:hidden text-zinc-400 hover:text-zinc-100"
                             >
                                 <svg
-                                    className="w-6 h-6"
+                                    className="w-5 h-5"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -147,27 +153,39 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                             </button>
                         </div>
                     </div>
-                    <p className="text-sm text-gray-600 truncate">
-                        {session.user?.name || session.user?.email}
-                    </p>
+
+                    {/* User Profile Card - Professional Look */}
+                    <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-zinc-900/50 border border-zinc-800/50">
+                        <div className="w-6 h-6 rounded bg-gradient-to-tr from-zinc-700 to-zinc-600 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[10px] font-bold text-white">
+                                {session.user?.name?.[0]?.toUpperCase() || "U"}
+                            </span>
+                        </div>
+                        <p className="text-xs text-zinc-300 truncate font-medium">
+                            {session.user?.name || session.user?.email}
+                        </p>
+                    </div>
                 </div>
 
                 {/* New Conversation Button */}
                 <div className="p-4">
                     <button
                         onClick={createNewConversation}
-                        className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg  transition"
+                        className="group w-full px-4 py-2.5 bg-zinc-100 hover:bg-white text-zinc-900 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm"
                     >
-                        + New Conversation
+                        <span className="text-lg leading-none mb-0.5">+</span>
+                        <span>New Chat</span>
                     </button>
                 </div>
 
                 {/* Conversation List */}
                 <div className="flex-1 overflow-y-auto">
                     {loading ? (
-                        <div className="p-4 text-center text-gray-500">
-                            {/* <Loading/> */}
-                            loading...
+                        <div className="flex flex-col items-center justify-center pt-10 gap-2">
+                            <div className="w-4 h-4 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin"></div>
+                            <p className="text-xs text-zinc-500">
+                                Loading history...
+                            </p>
                         </div>
                     ) : (
                         <ConversationList
@@ -180,13 +198,13 @@ export default function DashboardClient({ session }: DashboardClientProps) {
             </div>
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col w-full lg:w-auto">
+            <div className="flex-1 flex flex-col w-full lg:w-auto bg-black">
                 {/* Mobile Header */}
                 {selectedConversationId && (
-                    <div className="lg:hidden flex items-center gap-3 p-4 bg-white border-b border-gray-200">
+                    <div className="absolute z-10 top-0 lg:hidden flex items-center gap-3 p-4 bg-gray-900 border-b border-gray-800">
                         <button
                             onClick={() => setSidebarOpen(true)}
-                            className="text-gray-600 hover:text-gray-800"
+                            className="text-gray-400 hover:text-white"
                         >
                             <svg
                                 className="w-6 h-6"
@@ -202,10 +220,11 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                                 />
                             </svg>
                         </button>
-                        <h1 className="text-lg font-semibold text-gray-800 truncate">
-                            {conversations.find((c) => c.id === selectedConversationId)
-                                ?.title || "Chat"}
-                        </h1>
+                        {/* <h1 className="text-lg font-semibold text-white truncate">
+                            {conversations.find(
+                                (c) => c.id === selectedConversationId
+                            )?.title || "Chat"}
+                        </h1> */}
                     </div>
                 )}
 
@@ -215,17 +234,17 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                         userId={session.user.id || ""}
                     />
                 ) : (
-                    <div className="flex-1 flex items-center justify-center text-gray-400 p-4">
+                    <div className="flex-1 flex items-center justify-center text-gray-600 p-4">
                         <div className="text-center">
                             {/* Menu button when no conversation selected */}
                             <button
                                 onClick={() => setSidebarOpen(true)}
-                                className="lg:hidden mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                                className="lg:hidden mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition"
                             >
                                 Open Menu
                             </button>
                             <svg
-                                className="w-16 h-16 mx-auto mb-4"
+                                className="w-16 h-16 mx-auto mb-4 text-gray-800"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -237,7 +256,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                                     d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                                 />
                             </svg>
-                            <p className="text-lg px-4">
+                            <p className="text-lg px-4 text-gray-500">
                                 Select a conversation or start a new one
                             </p>
                         </div>
