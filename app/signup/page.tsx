@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/useAuthStore";
 import { signIn } from "next-auth/react"; 
 import { motion, Variants } from "framer-motion"; 
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -62,29 +61,17 @@ export default function SignupPage() {
                 throw new Error(data.error || "Signup failed. Please try again.");
             }
 
-            // 2. AUTO-LOGIN API CALL (Keeping your original API-based login flow)
-            const loginRes = await fetch("/api/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: email.trim(), password }),
-            });
-            const loginData = await loginRes.json();
-
-            if (loginRes.ok) {
-                // Set state and storage
-                const { token, user } = loginData;
-                localStorage.setItem("token", token);
-                localStorage.setItem("user", JSON.stringify(user));
-                useAuthStore.getState().setToken(token);
-                useAuthStore.getState().setUser(user);
-                
-                router.push("/dashboard");
-            } else {
-                // If auto-login fails, still show the user a success message for signup but direct them to login
-                setMessage("Account created successfully. Please log in.");
-                router.push("/login");
+            const result = await signIn("credentials",{
+                redirect:false,
+                email:email.trim(),
+                password:password
+            })
+            if(result?.error){
+                setMessage("Account created but login failed. Please login manually.")
+                router.push("/login")
+            }else{
+                router.push("/dashboard")
             }
-
         } catch (err) {
             if (err instanceof Error) {
                 setMessage(err.message);
