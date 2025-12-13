@@ -108,8 +108,8 @@ export async function POST(req: Request, { params }: RouteContext) {
                 conversationHistory,
                 model,
                 {
-                    temperature: 0.7,
-                    maxTokens: 5000,
+                    // temperature: 0.7,
+                    maxTokens: 8000,
                 }
             );
 
