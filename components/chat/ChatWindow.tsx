@@ -17,25 +17,41 @@ interface ChatWindowProps {
     conversationId: string | null;
     userId: string;
     onConversationCreated: (id: string) => void;
+    onMessageSent?: () => void;
 }
 
 export default function ChatWindow({
     conversationId,
     userId,
     onConversationCreated,
+    onMessageSent,
 }: ChatWindowProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const previousConversationIdRef = useRef<string | null>(null);
 
-    // Fetch messages ONLY if conversation exists
+    // Fetch messages when conversation changes
     useEffect(() => {
         if (!conversationId) {
-            setMessages([]);
+            if (previousConversationIdRef.current !== null) {
+                setMessages([]);
+            }
+            previousConversationIdRef.current = null;
             return;
         }
-        fetchMessages(conversationId);
+
+        const isNewConversationTransition =
+            previousConversationIdRef.current === null && conversationId;
+
+        if (!isNewConversationTransition || messages.length === 0) {
+            if (conversationId !== previousConversationIdRef.current) {
+                fetchMessages(conversationId);
+            }
+        }
+
+        previousConversationIdRef.current = conversationId;
     }, [conversationId]);
 
     useEffect(() => {
@@ -47,7 +63,10 @@ export default function ChatWindow({
         try {
             const res = await fetch(`/api/conversations/${id}/messages`);
             if (res.ok) {
-                setMessages(await res.json());
+                const fetchedMessages = await res.json();
+                setMessages(fetchedMessages);
+            } else {
+                console.error("Failed to fetch messages, status:", res.status);
             }
         } catch (e) {
             console.error("Failed to fetch messages:", e);
@@ -55,40 +74,54 @@ export default function ChatWindow({
             setLoading(false);
         }
     };
+
     const sendMessage = async (content: string) => {
         if (!content.trim() || sending) return;
         setSending(true);
-    
+
         let activeConversationId = conversationId;
-    
+        let isNewConversation = false;
+
         if (!activeConversationId) {
-            const res = await fetch("/api/conversations", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userId,
-                    model: "llama3",
-                }),
-            });
-    
-            const conversation = await res.json();
-            activeConversationId = conversation.id;
-            onConversationCreated(activeConversationId as string);
+            try {
+                const res = await fetch("/api/conversations", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        userId,
+                        model: "llama3",
+                    }),
+                });
+
+                if (!res.ok) {
+                    throw new Error("Failed to create conversation");
+                }
+
+                const conversation = await res.json();
+                activeConversationId = conversation.id;
+                isNewConversation = true;
+            } catch (e) {
+                console.error("Failed to create conversation:", e);
+                setSending(false);
+                alert("Failed to create conversation. Please try again.");
+                return;
+            }
         }
-    
+
         if (!activeConversationId) {
-            throw new Error("Conversation ID missing after creation");
+            setSending(false);
+            return;
         }
-    
+
         const tempMessage: Message = {
             id: `temp-${Date.now()}`,
             role: "user",
             content,
             createdAt: new Date().toISOString(),
         };
-    
+
         setMessages((prev) => [...prev, tempMessage]);
-    
+
         try {
             const res = await fetch(
                 `/api/conversations/${activeConversationId}/messages`,
@@ -98,26 +131,49 @@ export default function ChatWindow({
                     body: JSON.stringify({ role: "user", content }),
                 }
             );
-    
-            if (res.ok) {
-                const data = await res.json();
-                setMessages((prev) =>
-                    prev
-                        .filter((m) => m.id !== tempMessage.id)
-                        .concat(data.user, data.assistant)
-                        .filter(Boolean)
+
+            if (!res.ok) {
+                throw new Error("Failed to send message");
+            }
+
+            const data = await res.json();
+
+            setMessages((prev) => {
+                const withoutTemp = prev.filter((m) => m.id !== tempMessage.id);
+                const newMessages = [];
+
+                if (data.user) {
+                    newMessages.push(data.user);
+                }
+                if (data.assistant) {
+                    newMessages.push(data.assistant);
+                }
+
+                return [...withoutTemp, ...newMessages];
+            });
+
+            if (isNewConversation) {
+                setTimeout(() => {
+                    onConversationCreated(activeConversationId as string);
+                }, 100);
+            }
+
+            if (onMessageSent) {
+                setTimeout(
+                    () => {
+                        onMessageSent();
+                    },
+                    isNewConversation ? 500 : 300
                 );
             }
         } catch (e) {
             console.error("Send failed:", e);
-            setMessages((prev) =>
-                prev.filter((m) => m.id !== tempMessage.id)
-            );
+            setMessages((prev) => prev.filter((m) => m.id !== tempMessage.id));
+            alert("Failed to send message. Please try again.");
         } finally {
             setSending(false);
         }
     };
-    
 
     return (
         <motion.div
@@ -131,19 +187,15 @@ export default function ChatWindow({
                         <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
                     </div>
                 ) : messages.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-center">
+                    <div className="flex flex-col items-center justify-center h-full text-center">
                         <Bot className="w-20 h-20 text-purple-400 mb-4" />
-                        <p className="text-gray-400">
-                            Send a message to begin
-                        </p>
+                        <p className="text-gray-400">Send a message to begin</p>
                     </div>
                 ) : (
                     <div className="space-y-6 max-w-4xl mx-auto">
-                        <AnimatePresence>
-                            {messages.map((m) => (
-                                <MessageBubble key={m.id} message={m} />
-                            ))}
-                        </AnimatePresence>
+                        {messages.map((m) => (
+                            <MessageBubble key={m.id} message={m} />
+                        ))}
                         <div ref={messagesEndRef} />
                     </div>
                 )}
