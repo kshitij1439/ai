@@ -61,32 +61,36 @@ export async function POST(req: Request, { params }: RouteContext) {
             );
         }
 
-        // Create user message first
-        const message = await prisma.message.create({
+        const conversation = await prisma.conversation.findUnique({
+            where: { id: conversationId },
+            include: {
+                messages: {
+                    orderBy: { createdAt: "asc" },
+                    where: { role: "user" },
+                },
+            },
+        });
+
+        if (!conversation) {
+            return NextResponse.json(
+                { error: "Conversation not found" },
+                { status: 404 }
+            );
+        }
+
+        const isFirstUserMessage = conversation.messages.length === 0;
+
+        const userMessage = await prisma.message.create({
             data: { conversationId, role, content, tokens },
         });
-
-        // Count ONLY user messages (after insert)
-        const userMessageCount = await prisma.message.count({
-            where: { conversationId, role: "user" },
-        });
-
-        const isFirstUserMessage = userMessageCount === 1;
 
         let assistantMessage = null;
 
         if (role === "user") {
-            const conversation = await prisma.conversation.findUnique({
-                where: { id: conversationId },
-                include: { messages: { orderBy: { createdAt: "asc" } } },
+            const fullMessages = await prisma.message.findMany({
+                where: { conversationId },
+                orderBy: { createdAt: "asc" },
             });
-
-            if (!conversation) {
-                return NextResponse.json(
-                    { error: "Conversation not found" },
-                    { status: 404 }
-                );
-            }
 
             const memoryContext = await memoryService.getConversationContext(
                 session.user.id,
@@ -95,19 +99,20 @@ export async function POST(req: Request, { params }: RouteContext) {
             );
 
             const conversationHistory = [
-                ...conversation.messages.map((msg) => ({
+                ...(memoryContext
+                    ? [
+                          {
+                              role: "system" as const,
+                              content: `You are a helpful AI assistant with memory.\n\n${memoryContext}`,
+                          },
+                      ]
+                    : []),
+                ...fullMessages.map((msg) => ({
                     role: msg.role as "user" | "assistant" | "system",
                     content: msg.content,
                 })),
                 { role: "user" as const, content },
             ];
-
-            if (memoryContext) {
-                conversationHistory.unshift({
-                    role: "system",
-                    content: `You are a helpful AI assistant with memory.\n\n${memoryContext}`,
-                });
-            }
 
             const assistantResponse = await aiService.chat(
                 conversationHistory,
@@ -116,43 +121,8 @@ export async function POST(req: Request, { params }: RouteContext) {
             );
 
             if (assistantResponse) {
-                // ✅ create assistant message ONCE
-                assistantMessage = await prisma.message.create({
-                    data: {
-                        conversationId,
-                        role: "assistant",
-                        content: assistantResponse,
-                    },
-                });
-
-                await memoryService.storeConversationMessage(
-                    conversationId,
-                    session.user.id,
-                    content,
-                    assistantResponse,
-                    assistantMessage.id
-                );
-
-                await memoryService.addMemory(
-                    session.user.id,
-                    [
-                        { role: "user", content },
-                        { role: "assistant", content: assistantResponse },
-                    ],
-                    {
-                        conversationId,
-                        timestamp: new Date().toISOString(),
-                    }
-                );
-
-                // ✅ generate title ONLY on first user message
                 if (isFirstUserMessage) {
-                    const titlePrompt = `
-Generate a short, clear conversation title (max 6 words)
-based on this user message:
-
-"${content}"
-                    `;
+                    const titlePrompt = `Generate a short, clear conversation title (max 6 words) based on this user message: "${content}"`;
 
                     const generatedTitle = await aiService.chat(
                         [{ role: "user", content: titlePrompt }],
@@ -160,18 +130,65 @@ based on this user message:
                         { maxTokens: 30 }
                     );
 
-                    await prisma.conversation.update({
-                        where: { id: conversationId },
+                    const [newAssistantMsg] = await prisma.$transaction([
+                        prisma.message.create({
+                            data: {
+                                conversationId,
+                                role: "assistant",
+                                content: assistantResponse,
+                            },
+                        }),
+                        prisma.conversation.update({
+                            where: { id: conversationId },
+                            data: {
+                                title: generatedTitle
+                                    .replace(/^"|"$/g, "")
+                                    .trim(),
+                            },
+                        }),
+                    ]);
+
+                    assistantMessage = newAssistantMsg;
+                } else {
+                    assistantMessage = await prisma.message.create({
                         data: {
-                            title: generatedTitle.replace(/^"|"$/g, "").trim(),
+                            conversationId,
+                            role: "assistant",
+                            content: assistantResponse,
                         },
                     });
                 }
+
+                Promise.all([
+                    memoryService.storeConversationMessage(
+                        conversationId,
+                        session.user.id,
+                        content,
+                        assistantResponse,
+                        assistantMessage.id
+                    ),
+                    memoryService.addMemory(
+                        session.user.id,
+                        [
+                            { role: "user", content },
+                            { role: "assistant", content: assistantResponse },
+                        ],
+                        {
+                            conversationId,
+                            timestamp: new Date().toISOString(),
+                        }
+                    ),
+                ]).catch((error) => {
+                    console.error(
+                        "Memory service error (non-blocking):",
+                        error
+                    );
+                });
             }
         }
 
         return NextResponse.json({
-            user: message,
+            user: userMessage,
             assistant: assistantMessage,
         });
     } catch (error) {
