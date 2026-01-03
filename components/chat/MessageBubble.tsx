@@ -4,6 +4,7 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { motion } from "framer-motion";
 
 interface Message {
     id: string;
@@ -28,7 +29,11 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
     };
 
     return (
-        <div
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
             className={`flex ${isUser ? "justify-end" : "justify-start"} my-2`}
         >
             <div
@@ -39,7 +44,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 {/* Avatar */}
                 <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        isUser ? "bg-gray-600" : "bg-gray-800"
+                        isUser ? "bg-blue-600" : "bg-purple-600"
                     }`}
                 >
                     <span className="text-white text-sm font-medium">
@@ -50,10 +55,10 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 {/* Message Bubble */}
                 <div className="flex flex-col min-w-0">
                     <div
-                        className={`rounded-lg px-4 py-2 text-sm leading-relaxed overflow-x-auto ${
+                        className={`rounded-lg px-4 py-3 text-sm leading-relaxed overflow-x-auto ${
                             isUser
                                 ? "bg-gray-700 text-gray-100"
-                                : "bg-gray-800/50 text-gray-100 border border-gray-700"
+                                : "bg-gray-800/80 text-gray-100 border border-gray-700"
                         }`}
                     >
                         <ReactMarkdown
@@ -94,7 +99,11 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                                         </div>
                                     ) : (
                                         <code
-                                            className="bg-black/50 text-gray-200 px-1 py-0.5 rounded whitespace-nowrap"
+                                            className={`px-1 py-0.5 rounded whitespace-nowrap ${
+                                                isUser
+                                                    ? "bg-blue-700 text-blue-100"
+                                                    : "bg-black/50 text-gray-200"
+                                            }`}
                                             {...props}
                                         >
                                             {children}
@@ -111,6 +120,27 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                                         </pre>
                                     );
                                 },
+                                p({ children, ...props }) {
+                                    return (
+                                        <p className="mb-2 last:mb-0" {...props}>
+                                            {children}
+                                        </p>
+                                    );
+                                },
+                                ul({ children, ...props }) {
+                                    return (
+                                        <ul className="list-disc list-inside mb-2" {...props}>
+                                            {children}
+                                        </ul>
+                                    );
+                                },
+                                ol({ children, ...props }) {
+                                    return (
+                                        <ol className="list-decimal list-inside mb-2" {...props}>
+                                            {children}
+                                        </ol>
+                                    );
+                                },
                             }}
                         >
                             {message.content}
@@ -125,6 +155,6 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                     </span>
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 }

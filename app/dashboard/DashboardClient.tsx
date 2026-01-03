@@ -89,6 +89,10 @@ export default function DashboardClient({ session }: DashboardClientProps) {
         }
     };
 
+    const handleMessageSent = () => {
+        fetchConversations(); 
+    };
+
     if (!session) {
         return (
             <div className="text-center mt-20 px-4">
@@ -228,18 +232,16 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                     </div>
                 )}
 
-                {/* {selectedConversationId ? ( */}
                 <ChatWindow
-                    key={selectedConversationId ?? "draft"}
+                    key={selectedConversationId}
                     conversationId={selectedConversationId}
                     userId={session.user.id}
                     onConversationCreated={(id) => {
                         setSelectedConversationId(id);
                         fetchConversations();
                     }}
+                    onMessageSent={handleMessageSent} 
                 />
-
-                {/* )} */}
             </div>
         </div>
     );
