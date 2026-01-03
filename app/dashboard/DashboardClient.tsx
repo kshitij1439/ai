@@ -52,34 +52,45 @@ export default function DashboardClient({ session }: DashboardClientProps) {
         }
     };
 
-    const createNewConversation = async () => {
-        if (!session?.user?.id) return;
-
-        try {
-            const res = await fetch("/api/conversations", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userId: session.user.id,
-                    model: "llama3",
-                    title: "New Conversation",
-                }),
-            });
-
-            if (res.ok) {
-                const newConversation = await res.json();
-                setConversations([newConversation, ...conversations]);
-                setSelectedConversationId(newConversation.id);
-                setSidebarOpen(false); // Close sidebar on mobile after creating
-            }
-        } catch (error) {
-            console.error("Failed to create conversation:", error);
-        }
+    const createNewConversation = () => {
+        setSelectedConversationId(null); // draft mode
     };
 
     const handleSelectConversation = (id: string) => {
         setSelectedConversationId(id);
         setSidebarOpen(false); // Close sidebar on mobile after selecting
+    };
+
+    const handleUpdateConversation = async (id: string, newTitle: string) => {
+        try {
+            const res = await fetch(`/api/conversations/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: newTitle }),
+            });
+
+            if (res.ok) {
+                const updated = await res.json();
+                setConversations((prev) =>
+                    prev.map((conv) =>
+                        conv.id === id
+                            ? { ...conv, title: updated.title }
+                            : conv
+                    )
+                );
+            } else {
+                const error = await res.json();
+                console.error("Failed to update conversation:", error);
+                alert(error.error || "Failed to update conversation");
+            }
+        } catch (error) {
+            console.error("Failed to update conversation:", error);
+            alert("Failed to update conversation");
+        }
+    };
+
+    const handleMessageSent = () => {
+        fetchConversations(); 
     };
 
     if (!session) {
@@ -182,13 +193,14 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                 <div className="flex-1 overflow-y-auto">
                     {loading ? (
                         <SkeletonLoader />
-                    ) : conversations.length == 0 ? (
+                    ) : conversations.length === 0 ? (
                         <EmptyState />
                     ) : (
                         <ConversationList
                             conversations={conversations}
                             selectedId={selectedConversationId}
                             onSelect={handleSelectConversation}
+                            onUpdate={handleUpdateConversation}
                         />
                     )}
                 </div>
@@ -217,48 +229,19 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                                 />
                             </svg>
                         </button>
-                        {/* <h1 className="text-lg font-semibold text-white truncate">
-                            {conversations.find(
-                                (c) => c.id === selectedConversationId
-                            )?.title || "Chat"}
-                        </h1> */}
                     </div>
                 )}
 
-                {selectedConversationId ? (
-                    <ChatWindow
-                        conversationId={selectedConversationId}
-                        userId={session.user.id || ""}
-                    />
-                ) : (
-                    <div className="flex-1 flex items-center justify-center text-gray-600 p-4">
-                        <div className="text-center">
-                            {/* Menu button when no conversation selected */}
-                            <button
-                                onClick={() => setSidebarOpen(true)}
-                                className="lg:hidden mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition"
-                            >
-                                Open Menu
-                            </button>
-                            <svg
-                                className="w-16 h-16 mx-auto mb-4 text-gray-800"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={1.5}
-                                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                                />
-                            </svg>
-                            <p className="text-lg px-4 text-gray-500">
-                                Select a conversation or start a new one
-                            </p>
-                        </div>
-                    </div>
-                )}
+                <ChatWindow
+                    key={selectedConversationId}
+                    conversationId={selectedConversationId}
+                    userId={session.user.id}
+                    onConversationCreated={(id) => {
+                        setSelectedConversationId(id);
+                        fetchConversations();
+                    }}
+                    onMessageSent={handleMessageSent} 
+                />
             </div>
         </div>
     );

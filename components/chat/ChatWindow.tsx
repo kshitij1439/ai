@@ -14,162 +14,134 @@ interface Message {
 }
 
 interface ChatWindowProps {
-    conversationId: string;
+    conversationId: string | null;
     userId: string;
+    onConversationCreated: (id: string) => void;
 }
 
 export default function ChatWindow({
     conversationId,
     userId,
+    onConversationCreated,
 }: ChatWindowProps) {
     const [messages, setMessages] = useState<Message[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    // Fetch messages ONLY if conversation exists
     useEffect(() => {
-        fetchMessages();
+        if (!conversationId) {
+            setMessages([]);
+            return;
+        }
+        fetchMessages(conversationId);
     }, [conversationId]);
 
     useEffect(() => {
-        scrollToBottom();
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-
-    const fetchMessages = async () => {
+    const fetchMessages = async (id: string) => {
         setLoading(true);
         try {
-            const res = await fetch(
-                `/api/conversations/${conversationId}/messages`
-            );
+            const res = await fetch(`/api/conversations/${id}/messages`);
             if (res.ok) {
-                const data = await res.json();
-                setMessages(data);
+                setMessages(await res.json());
             }
-        } catch (error) {
-            console.error("Failed to fetch messages:", error);
+        } catch (e) {
+            console.error("Failed to fetch messages:", e);
         } finally {
             setLoading(false);
         }
     };
-
     const sendMessage = async (content: string) => {
         if (!content.trim() || sending) return;
-
         setSending(true);
-
-        const tempUserMessage: Message = {
+    
+        let activeConversationId = conversationId;
+    
+        if (!activeConversationId) {
+            const res = await fetch("/api/conversations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId,
+                    model: "llama3",
+                }),
+            });
+    
+            const conversation = await res.json();
+            activeConversationId = conversation.id;
+            onConversationCreated(activeConversationId as string);
+        }
+    
+        if (!activeConversationId) {
+            throw new Error("Conversation ID missing after creation");
+        }
+    
+        const tempMessage: Message = {
             id: `temp-${Date.now()}`,
             role: "user",
             content,
             createdAt: new Date().toISOString(),
         };
-
-        setMessages((prev) => [...prev, tempUserMessage]);
-
+    
+        setMessages((prev) => [...prev, tempMessage]);
+    
         try {
             const res = await fetch(
-                `/api/conversations/${conversationId}/messages`,
+                `/api/conversations/${activeConversationId}/messages`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        role: "user",
-                        content,
-                    }),
+                    body: JSON.stringify({ role: "user", content }),
                 }
             );
-
+    
             if (res.ok) {
                 const data = await res.json();
-                setMessages((prev) => {
-                    const filtered = prev.filter(
-                        (m) => m.id !== tempUserMessage.id
-                    );
-                    const newMessages = [];
-                    if (data.user) newMessages.push(data.user);
-                    if (data.assistant) newMessages.push(data.assistant);
-                    return [...filtered, ...newMessages];
-                });
-            } else {
                 setMessages((prev) =>
-                    prev.filter((m) => m.id !== tempUserMessage.id)
+                    prev
+                        .filter((m) => m.id !== tempMessage.id)
+                        .concat(data.user, data.assistant)
+                        .filter(Boolean)
                 );
-                alert("Failed to send message");
             }
-        } catch (error) {
-            console.error("Failed to send message:", error);
+        } catch (e) {
+            console.error("Send failed:", e);
             setMessages((prev) =>
-                prev.filter((m) => m.id !== tempUserMessage.id)
+                prev.filter((m) => m.id !== tempMessage.id)
             );
-            alert("Failed to send message");
         } finally {
             setSending(false);
         }
     };
+    
 
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            // Dark transparent background
-            // className="flex flex-col bg-gray-900/50 backdrop-blur-sm h-full"
             className="flex flex-col bg-gray-900/50 backdrop-blur-sm min-h-screen"
         >
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                 {loading ? (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center justify-center h-full"
-                    >
-                        <div className="text-center">
-                            {/* Lighter purple for dark mode */}
-                            <Loader2 className="w-12 h-12 mx-auto text-purple-400 animate-spin mb-3" />
-                            <p className="text-gray-400">Loading messages...</p>
-                        </div>
-                    </motion.div>
+                    <div className="flex items-center justify-center h-full">
+                        <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
+                    </div>
                 ) : messages.length === 0 ? (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center justify-center h-full"
-                    >
-                        <div className="text-center">
-                            <motion.div
-                                animate={{
-                                    scale: [1, 1.1, 1],
-                                    rotate: [0, 10, -10, 0],
-                                }}
-                                transition={{
-                                    duration: 2,
-                                    repeat: Infinity,
-                                    ease: "easeInOut",
-                                }}
-                            >
-                                <Bot className="w-20 h-20 mx-auto text-purple-400 mb-4" />
-                            </motion.div>
-                            <p className="text-lg text-gray-200 font-medium">
-                                Start the conversation
-                            </p>
-                            <p className="text-sm text-gray-500 mt-2">
-                                Send a message to begin
-                            </p>
-                        </div>
-                    </motion.div>
+                    <div className="flex items-center justify-center h-full text-center">
+                        <Bot className="w-20 h-20 text-purple-400 mb-4" />
+                        <p className="text-gray-400">
+                            Send a message to begin
+                        </p>
+                    </div>
                 ) : (
                     <div className="space-y-6 max-w-4xl mx-auto">
-                        <AnimatePresence initial={false}>
-                            {messages.map((message) => (
-                                <MessageBubble
-                                    key={message.id}
-                                    message={message}
-                                />
+                        <AnimatePresence>
+                            {messages.map((m) => (
+                                <MessageBubble key={m.id} message={m} />
                             ))}
                         </AnimatePresence>
                         <div ref={messagesEndRef} />
@@ -177,18 +149,9 @@ export default function ChatWindow({
                 )}
             </div>
 
-            {/* Input Area Wrapper */}
-            <motion.div
-                className="
-                  sticky bottom-0
-                   sm:pb-6 px-6
-                  flex-shrink-0
-                "
-            >
-                <div className="relative w-full ">
-                    <MessageInput onSend={sendMessage} disabled={sending} />
-                </div>
-            </motion.div>
+            <div className="sticky bottom-0 px-6 pb-6">
+                <MessageInput onSend={sendMessage} disabled={sending} />
+            </div>
         </motion.div>
     );
 }
