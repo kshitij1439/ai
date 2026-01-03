@@ -90,7 +90,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
     };
 
     const handleMessageSent = () => {
-        fetchConversations(); 
+        fetchConversations();
     };
 
     if (!session) {
@@ -209,7 +209,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col w-full lg:w-auto bg-black">
                 {/* Mobile Header */}
-                {selectedConversationId && (
+                {conversations.length > 0 && (
                     <div className="absolute z-10 top-0 lg:hidden flex items-center gap-3 p-4 bg-gray-900 border-b border-gray-800">
                         <button
                             onClick={() => setSidebarOpen(true)}
@@ -240,7 +240,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                         setSelectedConversationId(id);
                         fetchConversations();
                     }}
-                    onMessageSent={handleMessageSent} 
+                    onMessageSent={handleMessageSent}
                 />
             </div>
         </div>
