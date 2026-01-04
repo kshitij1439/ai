@@ -6,7 +6,9 @@ import { Session } from "next-auth";
 import { useState, useEffect } from "react";
 import ConversationList from "@/components/chat/ConversationList";
 import ChatWindow from "@/components/chat/ChatWindow";
-import Loading from "../chat/[conversationId]/loading";
+import ModelSelector from "@/components/chat/ModelSelector";
+import { AIModel } from "@/lib/ai/modelTypes";
+import { Settings } from "lucide-react";
 
 interface DashboardClientProps {
     session: Session | null;
@@ -27,6 +29,10 @@ export default function DashboardClient({ session }: DashboardClientProps) {
     >(null);
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [selectedModel, setSelectedModel] = useState<AIModel>(
+        "gemini-2.5-flash-lite"
+    );
+    const [showModelSelector, setShowModelSelector] = useState(false);
 
     useEffect(() => {
         if (session?.user) {
@@ -39,7 +45,6 @@ export default function DashboardClient({ session }: DashboardClientProps) {
             const res = await fetch("/api/conversations");
             if (res.ok) {
                 const data = await res.json();
-                // Filter conversations for current user
                 const userConversations = data.filter(
                     (conv: Conversation) => conv.userId === session?.user?.id
                 );
@@ -53,12 +58,12 @@ export default function DashboardClient({ session }: DashboardClientProps) {
     };
 
     const createNewConversation = () => {
-        setSelectedConversationId(null); // draft mode
+        setSelectedConversationId(null);
     };
 
     const handleSelectConversation = (id: string) => {
         setSelectedConversationId(id);
-        setSidebarOpen(false); // Close sidebar on mobile after selecting
+        setSidebarOpen(false);
     };
 
     const handleUpdateConversation = async (id: string, newTitle: string) => {
@@ -137,13 +142,21 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() =>
+                                    setShowModelSelector(!showModelSelector)
+                                }
+                                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors px-2 py-1 rounded hover:bg-zinc-900"
+                                title="AI Settings"
+                            >
+                                <Settings className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() =>
                                     signOut({ callbackUrl: "/login" })
                                 }
                                 className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors px-2 py-1 rounded hover:bg-zinc-900"
                             >
                                 Logout
                             </button>
-                            {/* Close button for mobile */}
                             <button
                                 onClick={() => setSidebarOpen(false)}
                                 className="lg:hidden text-zinc-400 hover:text-zinc-100"
@@ -165,7 +178,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                         </div>
                     </div>
 
-                    {/* User Profile Card - Professional Look */}
+                    {/* User Profile Card */}
                     <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-zinc-900/50 border border-zinc-800/50">
                         <div className="w-6 h-6 rounded bg-gradient-to-tr from-zinc-700 to-zinc-600 flex items-center justify-center flex-shrink-0">
                             <span className="text-[10px] font-bold text-white">
@@ -176,6 +189,19 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                             {session.user?.name || session.user?.email}
                         </p>
                     </div>
+
+                    {/* Model Selector */}
+                    {/* {showModelSelector && ( */}
+                    <div className="mt-3 p-3 bg-zinc-900/50 border border-zinc-800/50 rounded-lg">
+                        <label className="text-xs text-zinc-400 mb-2 block">
+                            Active AI Model
+                        </label>
+                        <ModelSelector
+                            selectedModel={selectedModel}
+                            onModelChange={setSelectedModel}
+                        />
+                    </div>
+                    {/* )} */}
                 </div>
 
                 {/* New Conversation Button */}
@@ -236,6 +262,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                     key={selectedConversationId}
                     conversationId={selectedConversationId}
                     userId={session.user.id}
+                    selectedModel={selectedModel}
                     onConversationCreated={(id) => {
                         setSelectedConversationId(id);
                         fetchConversations();
