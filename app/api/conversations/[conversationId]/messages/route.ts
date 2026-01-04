@@ -4,7 +4,7 @@ import { aiService } from "@/lib/ai";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 import { memoryService } from "@/lib/ai/memory";
-import { AIModel } from "@/lib/ai/types";
+import { AIModel } from "@/lib/ai/modelTypes";
 
 interface RouteContext {
     params: Promise<{ conversationId: string }>;
@@ -54,12 +54,7 @@ export async function POST(req: Request, { params }: RouteContext) {
 
     try {
         const body = await req.json();
-        const { 
-            role, 
-            content, 
-            tokens, 
-            model = "gemini-2.5-flash-lite" 
-        } = body;
+        const { role, content, tokens, model = "gemini-2.5-flash-lite" } = body;
 
         if (!role || !content) {
             return NextResponse.json(
