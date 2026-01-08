@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 import { Bot, Loader2 } from "lucide-react";
+import { AIModel } from "@/lib/ai/modelTypes";
 
 interface Message {
     id: string;
@@ -16,6 +17,7 @@ interface Message {
 interface ChatWindowProps {
     conversationId: string | null;
     userId: string;
+    selectedModel: AIModel;
     onConversationCreated: (id: string) => void;
     onMessageSent?: () => void;
 }
@@ -23,6 +25,7 @@ interface ChatWindowProps {
 export default function ChatWindow({
     conversationId,
     userId,
+    selectedModel,
     onConversationCreated,
     onMessageSent,
 }: ChatWindowProps) {
@@ -75,7 +78,7 @@ export default function ChatWindow({
         }
     };
 
-    const sendMessage = async (content: string) => {
+    const sendMessage = async (content: string, model: AIModel) => {
         if (!content.trim() || sending) return;
         setSending(true);
 
@@ -89,7 +92,7 @@ export default function ChatWindow({
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         userId,
-                        model: "llama3",
+                        model: model,
                     }),
                 });
 
@@ -128,7 +131,11 @@ export default function ChatWindow({
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ role: "user", content }),
+                    body: JSON.stringify({
+                        role: "user",
+                        content,
+                        model: model, 
+                    }),
                 }
             );
 
@@ -190,6 +197,9 @@ export default function ChatWindow({
                     <div className="flex flex-col items-center justify-center h-full text-center">
                         <Bot className="w-20 h-20 text-purple-400 mb-4" />
                         <p className="text-gray-400">Send a message to begin</p>
+                        <p className="text-gray-600 text-sm mt-2">
+                            Using: {selectedModel}
+                        </p>
                     </div>
                 ) : (
                     <div className="space-y-6 max-w-4xl mx-auto">
@@ -202,7 +212,12 @@ export default function ChatWindow({
             </div>
 
             <div className="sticky bottom-0 px-6 pb-6">
-                <MessageInput onSend={sendMessage} disabled={sending} />
+                <MessageInput
+                    onSend={sendMessage}
+                    disabled={sending}
+                    currentModel={selectedModel}
+                    onModelChange={() => {}} 
+                />
             </div>
         </motion.div>
     );

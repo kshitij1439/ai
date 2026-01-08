@@ -4,6 +4,7 @@ import { aiService } from "@/lib/ai";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 import { memoryService } from "@/lib/ai/memory";
+import { AIModel } from "@/lib/ai/modelTypes";
 
 interface RouteContext {
     params: Promise<{ conversationId: string }>;
@@ -42,6 +43,7 @@ export async function GET(req: Request, { params }: RouteContext) {
         );
     }
 }
+
 export async function POST(req: Request, { params }: RouteContext) {
     const { conversationId } = await params;
     const session = await getServerSession(authOptions);
@@ -116,7 +118,7 @@ export async function POST(req: Request, { params }: RouteContext) {
 
             const assistantResponse = await aiService.chat(
                 conversationHistory,
-                model,
+                model as AIModel,
                 { maxTokens: 8000 }
             );
 
@@ -126,7 +128,7 @@ export async function POST(req: Request, { params }: RouteContext) {
 
                     const generatedTitle = await aiService.chat(
                         [{ role: "user", content: titlePrompt }],
-                        model,
+                        model as AIModel,
                         { maxTokens: 30 }
                     );
 

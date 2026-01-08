@@ -1,19 +1,43 @@
 "use client";
 
-import { useState, KeyboardEvent } from "react";
+import { useState, KeyboardEvent, useRef, useEffect } from "react";
+import { Send, Loader2, Sparkles } from "lucide-react";
+import { AIModel } from "@/lib/ai/modelTypes";
 
 interface MessageInputProps {
-    onSend: (message: string) => void;
+    onSend: (message: string, model: AIModel) => void;
     disabled?: boolean;
+    currentModel: AIModel;
+    onModelChange: (model: AIModel) => void;
 }
 
-export default function MessageInput({ onSend, disabled }: MessageInputProps) {
+export default function MessageInput({
+    onSend,
+    disabled,
+    currentModel,
+    onModelChange,
+}: MessageInputProps) {
     const [message, setMessage] = useState("");
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+            textareaRef.current.style.height = `${Math.min(
+                textareaRef.current.scrollHeight,
+                200
+            )}px`;
+        }
+    }, [message]);
 
     const handleSend = () => {
         if (message.trim() && !disabled) {
-            onSend(message);
+            onSend(message, currentModel);
             setMessage("");
+            // Reset textarea height
+            if (textareaRef.current) {
+                textareaRef.current.style.height = "auto";
+            }
         }
     };
 
@@ -25,47 +49,52 @@ export default function MessageInput({ onSend, disabled }: MessageInputProps) {
     };
 
     return (
-        <div className="flex gap-2 items-center">
-            <div className="flex-1 relative">
+        <div className="max-w-4xl mx-auto w-full space-y-2">
+            <div className="relative flex items-end gap-2 bg-gray-800/50 border border-gray-700 rounded-2xl p-2 shadow-lg backdrop-blur-sm">
                 <textarea
+                    ref={textareaRef}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
+                    placeholder="Type your message... (Shift+Enter for new line)"
                     disabled={disabled}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:bg-gray-900 disabled:cursor-not-allowed"
-                    rows={3}
+                    className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none resize-none disabled:cursor-not-allowed px-3 py-3 min-h-[56px] max-h-[200px]"
+                    rows={1}
+                    // style={{ scrollbarWidth: "thin" }}
                 />
+
+                <button
+                    onClick={handleSend}
+                    disabled={disabled || !message.trim()}
+                    className="flex-shrink-0 p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95 mb-1"
+                    title={disabled ? "Sending..." : "Send message (Enter)"}
+                >
+                    {disabled ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                        <Send className="w-5 h-5" />
+                    )}
+                </button>
             </div>
-            <button
-                onClick={handleSend}
-                disabled={disabled || !message.trim()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition flex items-center gap-2"
-            >
-                {disabled ? (
-                    <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        {/* Sending... */}
-                    </>
-                ) : (
-                    <>
-                        <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                            />
-                        </svg>
-                        {/* Send */}
-                    </>
-                )}
-            </button>
+
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <kbd className="px-2 py-1 bg-gray-800 rounded border border-gray-700">
+                        Enter
+                    </kbd>
+                    <span>to send</span>
+                    <span className="text-gray-600">•</span>
+                    <kbd className="px-2 py-1 bg-gray-800 rounded border border-gray-700">
+                        Shift + Enter
+                    </kbd>
+                    <span>for new line</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <Sparkles className="w-3 h-3" />
+                    <span>Powered by {currentModel}</span>
+                </div>
+            </div>
         </div>
     );
 }
