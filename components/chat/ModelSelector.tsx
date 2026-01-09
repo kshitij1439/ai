@@ -38,7 +38,7 @@ export default function ModelSelector({
                 ))}
             </optgroup>
 
-            <optgroup label=" Free - Ollama (Local)">
+            {/* <optgroup label=" Free - Ollama (Local)">
                 {MODEL_CATEGORIES.free.ollama.map((model) => (
                     <option key={model} value={model}>
                         {MODEL_DISPLAY_NAMES[model as AIModel]}
@@ -60,7 +60,7 @@ export default function ModelSelector({
                         {MODEL_DISPLAY_NAMES[model as AIModel]}
                     </option>
                 ))}
-            </optgroup>
+            </optgroup> */}
         </select>
     );
 }
