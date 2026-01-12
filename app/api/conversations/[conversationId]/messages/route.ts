@@ -10,6 +10,40 @@ interface RouteContext {
     params: Promise<{ conversationId: string }>;
 }
 
+async function shouldUseMemoryContext(
+    userMessage: string,
+    model: AIModel
+): Promise<boolean> {
+    try {
+        const classificationPrompt = `Analyze this user message and determine if it would benefit from accessing past conversation history or user preferences.
+
+User message: "${userMessage}"
+
+Consider:
+- Does it reference past conversations? ("remember", "last time", "you said")
+- Does it ask about user preferences or history?
+- Is it a substantive question that might benefit from personalization?
+- Is it just a simple greeting or acknowledgment?
+
+Respond with ONLY "YES" or "NO".`;
+
+        const response = await aiService.chat(
+            [{ role: "user", content: classificationPrompt }],
+            model,
+            { maxTokens: 10 }
+        );
+
+        const decision = response.trim().toUpperCase();
+        // console.log(` AI Memory Decision for "${userMessage}": ${decision}`);
+
+        return decision === "YES";
+    } catch (error) {
+        console.error("Error in AI memory classification:", error);
+        // Fallback: use memory for longer messages
+        return userMessage.length > 20;
+    }
+}
+
 export async function GET(req: Request, { params }: RouteContext) {
     const { conversationId } = await params;
     const session = await getServerSession(authOptions);
@@ -94,18 +128,48 @@ export async function POST(req: Request, { params }: RouteContext) {
                 orderBy: { createdAt: "asc" },
             });
 
-            const memoryContext = await memoryService.getConversationContext(
-                session.user.id,
+
+            const useMemory = await shouldUseMemoryContext(
                 content,
-                conversationId
+                model as AIModel
             );
+            let memoryContext = null;
+
+            if (useMemory) {
+                try {
+                    memoryContext = await memoryService.getConversationContext(
+                        session.user.id,
+                        content,
+                        conversationId
+                    );
+                    // console.log(
+                    //     " Memory context loaded based on AI decision"
+                    // );
+                } catch (error) {
+                    console.error(
+                        "Memory context error (non-blocking):",
+                        error
+                    );
+                }
+            } 
+            // else {
+            //     console.log(" Skipping memory context based on AI decision");
+            // }
 
             const conversationHistory = [
                 ...(memoryContext
                     ? [
                           {
                               role: "system" as const,
-                              content: `You are a helpful AI assistant with memory.\n\n${memoryContext}`,
+                              content: `You are a helpful AI assistant with memory capabilities.
+
+CONTEXT FROM PAST CONVERSATIONS:
+The following represents relevant information from the user's past interactions. Use this to provide personalized responses when appropriate, but focus primarily on addressing their current message.
+
+${memoryContext}
+
+---
+Now respond to the user's current message.`,
                           },
                       ]
                     : []),
@@ -121,6 +185,13 @@ export async function POST(req: Request, { params }: RouteContext) {
                 model as AIModel,
                 { maxTokens: 8000 }
             );
+
+            // console.log("-----------------");
+            // console.log("Conversation Stats:");
+            // console.log("  Messages in history:", conversationHistory.length);
+            // console.log("  Memory context used:", !!memoryContext);
+            // console.log("  Model:", model);
+            // console.log("-----------------");
 
             if (assistantResponse) {
                 if (isFirstUserMessage) {
