@@ -8,8 +8,9 @@ import {
     Edit2,
     Check,
     X,
+    Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 
 interface Conversation {
     id: string;
@@ -23,6 +24,7 @@ interface ConversationListProps {
     selectedId: string | null;
     onSelect: (id: string) => void;
     onUpdate: (id: string, newTitle: string) => void;
+    onDelete: (id: string) => void;
 }
 
 export default function ConversationList({
@@ -30,11 +32,12 @@ export default function ConversationList({
     selectedId,
     onSelect,
     onUpdate,
+    onDelete,
 }: ConversationListProps) {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
-
+    const [deleteConverstaion, setDeleteConverstaion] = useState(false);
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         const now = new Date();
@@ -63,6 +66,10 @@ export default function ConversationList({
         e.stopPropagation();
         setEditingId(conversation.id);
         setEditTitle(conversation.title || "");
+    };
+    const handleDeleteClick = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        onDelete(id);
     };
 
     const handleSave = async (id: string, e: React.MouseEvent) => {
@@ -105,8 +112,8 @@ export default function ConversationList({
             {conversations.map((conversation, index) => (
                 <motion.div
                     key={conversation.id}
-                    initial={{ opacity: 0,  }}
-                    animate={{ opacity: 1}}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     transition={{ delay: index * 0.03 }}
                     className={`
                         group w-full rounded-xl transition-all duration-200 border relative overflow-hidden
@@ -170,10 +177,9 @@ export default function ConversationList({
                         </div>
                     ) : (
                         <div
-  onClick={() => onSelect(conversation.id)}
-  className="w-full p-4 text-left flex flex-col gap-2 cursor-pointer"
->
-
+                            onClick={() => onSelect(conversation.id)}
+                            className="w-full p-4 text-left flex flex-col gap-2 cursor-pointer"
+                        >
                             {selectedId === conversation.id && (
                                 <div className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-blue-500" />
                             )}
@@ -242,6 +248,19 @@ export default function ConversationList({
                                         title="Edit title (AI-assisted)"
                                     >
                                         <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                        onClick={(e) =>
+                                            handleDeleteClick(
+                                                conversation.id,
+                                                e
+                                            )
+                                        }
+                                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100
+               hover:bg-red-900/40 text-red-500 transition-all"
+                                        title="Delete conversation"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                     <div
                                         className={`transition-opacity duration-200 ${
