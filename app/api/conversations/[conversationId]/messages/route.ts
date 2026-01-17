@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 import { memoryService } from "@/lib/ai/memory";
 import { AIModel } from "@/lib/ai/modelTypes";
+import { performWebSearch, shouldUseWebSearch } from "@/lib/ai/webSearch";
 
 interface RouteContext {
     params: Promise<{ conversationId: string }>;
@@ -34,12 +35,9 @@ Respond with ONLY "YES" or "NO".`;
         );
 
         const decision = response.trim().toUpperCase();
-        // console.log(` AI Memory Decision for "${userMessage}": ${decision}`);
-
         return decision === "YES";
     } catch (error) {
         console.error("Error in AI memory classification:", error);
-        // Fallback: use memory for longer messages
         return userMessage.length > 20;
     }
 }
@@ -88,7 +86,7 @@ export async function POST(req: Request, { params }: RouteContext) {
 
     try {
         const body = await req.json();
-        const { role, content, tokens, model = "gemini-2.5-flash-lite" } = body;
+        const { role, content, tokens, model = "gemini-2.5-flash-lite", webSearchEnabled = false } = body;
 
         if (!role || !content) {
             return NextResponse.json(
@@ -128,6 +126,22 @@ export async function POST(req: Request, { params }: RouteContext) {
                 orderBy: { createdAt: "asc" },
             });
 
+            // Determine if web search is needed
+            const needsWebSearch = webSearchEnabled || await shouldUseWebSearch(content, model as AIModel);
+            
+            let webSearchResults = "";
+            if (needsWebSearch && process.env.TAVILY_API_KEY) {
+                try {
+                    // console.log("🌐 Performing web search for:", content);
+                    
+                    const searchResults = await performWebSearch(content);
+                    webSearchResults = `\n\nWEB SEARCH RESULTS:\n${searchResults}`;
+                    
+                    // console.log("✅ Web search completed");
+                } catch (error) {
+                    console.error("Web search error (non-blocking):", error);
+                }
+            }
 
             const useMemory = await shouldUseMemoryContext(
                 content,
@@ -142,31 +156,27 @@ export async function POST(req: Request, { params }: RouteContext) {
                         content,
                         conversationId
                     );
-                    // console.log(
-                    //     " Memory context loaded based on AI decision"
-                    // );
                 } catch (error) {
                     console.error(
                         "Memory context error (non-blocking):",
                         error
                     );
                 }
-            } 
-            // else {
-            //     console.log(" Skipping memory context based on AI decision");
-            // }
+            }
 
             const conversationHistory = [
-                ...(memoryContext
+                ...(memoryContext || webSearchResults
                     ? [
                           {
                               role: "system" as const,
-                              content: `You are a helpful AI assistant with memory capabilities.
+                              content: `You are a helpful AI assistant with ${memoryContext ? 'memory capabilities' : ''} ${webSearchResults ? 'and access to current web information' : ''}.
 
-CONTEXT FROM PAST CONVERSATIONS:
+${memoryContext ? `CONTEXT FROM PAST CONVERSATIONS:
 The following represents relevant information from the user's past interactions. Use this to provide personalized responses when appropriate, but focus primarily on addressing their current message.
 
-${memoryContext}
+${memoryContext}` : ''}
+
+${webSearchResults}
 
 ---
 Now respond to the user's current message.`,
@@ -185,13 +195,6 @@ Now respond to the user's current message.`,
                 model as AIModel,
                 { maxTokens: 8000 }
             );
-
-            // console.log("-----------------");
-            // console.log("Conversation Stats:");
-            // console.log("  Messages in history:", conversationHistory.length);
-            // console.log("  Memory context used:", !!memoryContext);
-            // console.log("  Model:", model);
-            // console.log("-----------------");
 
             if (assistantResponse) {
                 if (isFirstUserMessage) {
