@@ -35,7 +35,6 @@ export default function ChatWindow({
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const previousConversationIdRef = useRef<string | null>(null);
 
-    // Fetch messages when conversation changes
     useEffect(() => {
         if (!conversationId) {
             if (previousConversationIdRef.current !== null) {
@@ -78,7 +77,11 @@ export default function ChatWindow({
         }
     };
 
-    const sendMessage = async (content: string, model: AIModel) => {
+    const sendMessage = async (
+        content: string,
+        model: AIModel,
+        webSearchEnabled: boolean
+    ) => {
         if (!content.trim() || sending) return;
         setSending(true);
 
@@ -134,7 +137,8 @@ export default function ChatWindow({
                     body: JSON.stringify({
                         role: "user",
                         content,
-                        model: model, 
+                        model: model,
+                        webSearchEnabled,
                     }),
                 }
             );
@@ -216,7 +220,7 @@ export default function ChatWindow({
                     onSend={sendMessage}
                     disabled={sending}
                     currentModel={selectedModel}
-                    onModelChange={() => {}} 
+                    onModelChange={() => {}}
                 />
             </div>
         </motion.div>
