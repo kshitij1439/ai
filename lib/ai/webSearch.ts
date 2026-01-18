@@ -1,54 +1,27 @@
 import { aiService } from "./index";
 import { AIModel } from "./modelTypes";
-
-interface TavilySearchResult {
-    title: string;
-    url: string;
-    content: string;
-    score: number;
-}
-
-interface TavilyResponse {
-    answer?: string;
-    results: TavilySearchResult[];
-}
+import { TavilySearchAPIRetriever } from "@langchain/community/retrievers/tavily_search_api";
 
 export async function performWebSearch(query: string): Promise<string> {
     try {
-        const response = await fetch("https://api.tavily.com/search", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                api_key: process.env.TAVILY_API_KEY,
-                query: query,
-                search_depth: "basic",
-                include_answer: true,
-                max_results: 3,
-            }),
+        const retriever = new TavilySearchAPIRetriever({
+            k: 3,
+            apiKey: process.env.TAVILY_API_KEY,
         });
 
-        if (!response.ok) {
-            throw new Error(`Tavily API error: ${response.statusText}`);
-        }
+        const documents = await retriever.invoke(query);
 
-        const data: TavilyResponse = await response.json();
-
-        let formattedResults = "";
-
-        if (data.answer) {
-            formattedResults += `Quick Answer: ${data.answer}\n\n`;
-        }
-
-        if (data.results && data.results.length > 0) {
-            formattedResults += "Sources:\n";
-            data.results.forEach((result, index) => {
-                formattedResults += `${index + 1}. ${result.title}\n`;
-                formattedResults += `   ${result.content}\n`;
-                formattedResults += `   URL: ${result.url}\n\n`;
-            });
-        }
+        let formattedResults = "Sources:\n";
+        documents.forEach((doc, index) => {
+            formattedResults += `${index + 1}. ${
+                doc.metadata?.title || "Untitled"
+            }\n`;
+            formattedResults += `   ${doc.pageContent}\n`;
+            if (doc.metadata?.url) {
+                formattedResults += `   URL: ${doc.metadata.url}\n`;
+            }
+            formattedResults += "\n";
+        });
 
         return formattedResults;
     } catch (error) {

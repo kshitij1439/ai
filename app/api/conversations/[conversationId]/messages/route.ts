@@ -137,7 +137,7 @@ export async function POST(req: Request, { params }: RouteContext) {
                     const searchResults = await performWebSearch(content);
                     webSearchResults = `\n\nWEB SEARCH RESULTS:\n${searchResults}`;
                     
-                    // console.log("✅ Web search completed");
+                    console.log(" Web search completed",webSearchResults);
                 } catch (error) {
                     console.error("Web search error (non-blocking):", error);
                 }
