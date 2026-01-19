@@ -86,7 +86,13 @@ export async function POST(req: Request, { params }: RouteContext) {
 
     try {
         const body = await req.json();
-        const { role, content, tokens, model = "gemini-2.5-flash-lite", webSearchEnabled = false } = body;
+        const {
+            role,
+            content,
+            tokens,
+            model = "gemini-2.5-flash-lite",
+            webSearchEnabled = false,
+        } = body;
 
         if (!role || !content) {
             return NextResponse.json(
@@ -119,6 +125,7 @@ export async function POST(req: Request, { params }: RouteContext) {
         });
 
         let assistantMessage = null;
+        let searchSources = null;
 
         if (role === "user") {
             const fullMessages = await prisma.message.findMany({
@@ -127,17 +134,22 @@ export async function POST(req: Request, { params }: RouteContext) {
             });
 
             // Determine if web search is needed
-            const needsWebSearch = webSearchEnabled || await shouldUseWebSearch(content, model as AIModel);
-            
+            const needsWebSearch =
+                webSearchEnabled ||
+                (await shouldUseWebSearch(content, model as AIModel));
+
             let webSearchResults = "";
             if (needsWebSearch && process.env.TAVILY_API_KEY) {
                 try {
-                    // console.log("🌐 Performing web search for:", content);
-                    
-                    const searchResults = await performWebSearch(content);
-                    webSearchResults = `\n\nWEB SEARCH RESULTS:\n${searchResults}`;
-                    
-                    console.log(" Web search completed",webSearchResults);
+                    const searchResult = await performWebSearch(content);
+                    webSearchResults = `\n\nWEB SEARCH RESULTS:\n${searchResult.formattedResults}`;
+                    searchSources = searchResult.sources; // Store sources
+
+                    console.log(
+                        "✅ Web search completed with",
+                        searchSources.length,
+                        "sources"
+                    );
                 } catch (error) {
                     console.error("Web search error (non-blocking):", error);
                 }
@@ -169,14 +181,40 @@ export async function POST(req: Request, { params }: RouteContext) {
                     ? [
                           {
                               role: "system" as const,
-                              content: `You are a helpful AI assistant with ${memoryContext ? 'memory capabilities' : ''} ${webSearchResults ? 'and access to current web information' : ''}.
+                              content: `You are a helpful AI assistant with ${
+                                  memoryContext ? "memory capabilities" : ""
+                              } ${
+                                  webSearchResults
+                                      ? "and access to current web information"
+                                      : ""
+                              }.
 
-${memoryContext ? `CONTEXT FROM PAST CONVERSATIONS:
+${
+    memoryContext
+        ? `CONTEXT FROM PAST CONVERSATIONS:
 The following represents relevant information from the user's past interactions. Use this to provide personalized responses when appropriate, but focus primarily on addressing their current message.
 
-${memoryContext}` : ''}
+${memoryContext}`
+        : ""
+}
 
-${webSearchResults}
+${
+    webSearchResults
+        ? `${webSearchResults}
+
+IMPORTANT FORMATTING INSTRUCTIONS FOR WEB SEARCH RESPONSES:
+When using information from these sources, format your response like this:
+1. For each major point or claim, reference the source inline
+2. Format: "Statement about topic <source_number>" 
+3. Example format:
+   "1. Gemini 3: Considered the strongest model by some, accessible through AI Studio. <1>
+   2. Grok 4: Ranked #1 by Artificial Analysis with an 'Intelligence Index' of 73. <2>
+   3. ChatGPT-5.1: A polished generalist model, ranking #2 in some evaluations. <3>"
+
+Where <1>, <2>, <3> correspond to the source numbers from the search results above.
+Use this citation style throughout your response to give proper attribution.`
+        : ""
+}
 
 ---
 Now respond to the user's current message.`,
@@ -266,6 +304,7 @@ Now respond to the user's current message.`,
         return NextResponse.json({
             user: userMessage,
             assistant: assistantMessage,
+            sources: searchSources, // Include sources in response
         });
     } catch (error) {
         console.error("Error creating message:", error);
