@@ -1,8 +1,20 @@
+// webSearch.ts - Updated version
 import { aiService } from "./index";
 import { AIModel } from "./modelTypes";
 import { TavilySearchAPIRetriever } from "@langchain/community/retrievers/tavily_search_api";
 
-export async function performWebSearch(query: string): Promise<string> {
+export interface SearchSource {
+    title: string;
+    url: string;
+    snippet: string;
+}
+
+export interface WebSearchResult {
+    formattedResults: string;
+    sources: SearchSource[];
+}
+
+export async function performWebSearch(query: string): Promise<WebSearchResult> {
     try {
         const retriever = new TavilySearchAPIRetriever({
             k: 3,
@@ -11,19 +23,32 @@ export async function performWebSearch(query: string): Promise<string> {
 
         const documents = await retriever.invoke(query);
 
+        const sources: SearchSource[] = [];
         let formattedResults = "Sources:\n";
+        
         documents.forEach((doc, index) => {
-            formattedResults += `${index + 1}. ${
-                doc.metadata?.title || "Untitled"
-            }\n`;
-            formattedResults += `   ${doc.pageContent}\n`;
-            if (doc.metadata?.url) {
-                formattedResults += `   URL: ${doc.metadata.url}\n`;
+            // Tavily might store URL in different metadata fields
+            const title = doc.metadata?.title || doc.metadata?.source || "Untitled";
+            const url = doc.metadata?.url || doc.metadata?.source || doc.metadata?.link || "";
+            const snippet = doc.pageContent;
+            
+            console.log(`Source ${index + 1} metadata:`, doc.metadata); // Debug log
+            
+            // Store structured source data
+            sources.push({ title, url, snippet });
+            
+            // Format for AI context
+            formattedResults += `${index + 1}. ${title}\n`;
+            formattedResults += `   ${snippet}\n`;
+            if (url) {
+                formattedResults += `   URL: ${url}\n`;
             }
             formattedResults += "\n";
         });
 
-        return formattedResults;
+        console.log("📚 Extracted sources:", sources); // Debug log
+
+        return { formattedResults, sources };
     } catch (error) {
         console.error("Web search error:", error);
         throw error;
@@ -56,22 +81,6 @@ A query DOES NOT need web search if it:
 - Seeks help with personal tasks or advice
 - Is conversational ("hello", "thank you", "tell me about yourself")
 
-Examples that NEED search:
-- "What's the latest AI news?"
-- "Current Bitcoin price"
-- "Who won yesterday's game?"
-- "Weather in Tokyo"
-- "What happened to Twitter?"
-- "Who is the current CEO of OpenAI?"
-
-Examples that DON'T need search:
-- "Explain quantum computing"
-- "Help me write code for a login form"
-- "What's the Pythagorean theorem?"
-- "How do I bake a cake?"
-- "Tell me a joke"
-- "What did we talk about last time?"
-
 Respond ONLY with "YES" or "NO".`;
 
         const response = await aiService.chat(
@@ -81,31 +90,20 @@ Respond ONLY with "YES" or "NO".`;
         );
 
         const decision = response.trim().toUpperCase() === "YES";
-        console.log(
-            `🔍 Web search needed for "${query}": ${decision ? "YES" : "NO"}`
-        );
+        console.log(`🔍 Web search needed for "${query}": ${decision ? "YES" : "NO"}`);
         return decision;
     } catch (error) {
         console.error("Web search classification error:", error);
 
-        // Fallback: simple keyword detection only for obvious cases
         const urgentKeywords = [
-            "latest",
-            "current",
-            "today",
-            "now",
-            "price",
-            "weather",
-            "news",
-            "breaking",
+            "latest", "current", "today", "now", "price", 
+            "weather", "news", "breaking"
         ];
         const hasUrgentKeyword = urgentKeywords.some((keyword) =>
             query.toLowerCase().includes(keyword)
         );
 
-        console.log(
-            `⚠️ Fallback classification: ${hasUrgentKeyword ? "YES" : "NO"}`
-        );
+        console.log(`⚠️ Fallback classification: ${hasUrgentKeyword ? "YES" : "NO"}`);
         return hasUrgentKeyword;
     }
 }

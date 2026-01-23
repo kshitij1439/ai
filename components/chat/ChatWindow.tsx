@@ -7,11 +7,18 @@ import MessageInput from "./MessageInput";
 import { Bot, Loader2 } from "lucide-react";
 import { AIModel } from "@/lib/ai/modelTypes";
 
+interface SearchSource {
+    title: string;
+    url: string;
+    snippet: string;
+}
+
 interface Message {
     id: string;
     role: string;
     content: string;
     createdAt: string;
+    sources?: SearchSource[];
 }
 
 interface ChatWindowProps {
@@ -157,7 +164,11 @@ export default function ChatWindow({
                     newMessages.push(data.user);
                 }
                 if (data.assistant) {
-                    newMessages.push(data.assistant);
+                    // Attach sources to assistant message
+                    newMessages.push({
+                        ...data.assistant,
+                        sources: data.sources || null,
+                    });
                 }
 
                 return [...withoutTemp, ...newMessages];

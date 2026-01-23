@@ -5,12 +5,20 @@ import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { motion } from "framer-motion";
+import { ExternalLink } from "lucide-react";
+
+interface SearchSource {
+    title: string;
+    url: string;
+    snippet: string;
+}
 
 interface Message {
     id: string;
     role: string;
     content: string;
     createdAt: string;
+    sources?: SearchSource[];
 }
 
 interface MessageBubbleProps {
@@ -27,6 +35,36 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
             minute: "2-digit",
         });
     };
+
+    // Process content to replace <1>, <2>, <3> with actual source links
+    const addSourceLinks = (content: string, sources?: SearchSource[]) => {
+        if (!sources || sources.length === 0) return content;
+
+        let result = content;
+
+        // Replace <1>, <2>, <3> etc. with markdown links
+        sources.forEach((source, idx) => {
+            const hasUrl = source.url && source.url.trim() !== "";
+            const citationPattern = new RegExp(`<${idx + 1}>`, "g");
+
+            if (hasUrl) {
+                result = result.replace(
+                    citationPattern,
+                    `[<${idx + 1}>](${source.url} "${source.title}")`
+                );
+            } else {
+                // Keep the citation but make it non-clickable
+                result = result.replace(
+                    citationPattern,
+                    `<sup class="text-blue-400">[${idx + 1}]</sup>`
+                );
+            }
+        });
+
+        return result;
+    };
+
+    const processedContent = addSourceLinks(message.content, message.sources);
 
     return (
         <motion.div
@@ -122,30 +160,76 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                                 },
                                 p({ children, ...props }) {
                                     return (
-                                        <p className="mb-2 last:mb-0" {...props}>
+                                        <p
+                                            className="mb-2 last:mb-0"
+                                            {...props}
+                                        >
                                             {children}
                                         </p>
                                     );
                                 },
                                 ul({ children, ...props }) {
                                     return (
-                                        <ul className="list-disc list-inside mb-2" {...props}>
+                                        <ul
+                                            className="list-disc list-inside mb-2"
+                                            {...props}
+                                        >
                                             {children}
                                         </ul>
                                     );
                                 },
                                 ol({ children, ...props }) {
                                     return (
-                                        <ol className="list-decimal list-inside mb-2" {...props}>
+                                        <ol
+                                            className="list-decimal list-inside mb-2"
+                                            {...props}
+                                        >
                                             {children}
                                         </ol>
                                     );
                                 },
+                                strong({ children, ...props }) {
+                                    return (
+                                        <strong
+                                            className="font-semibold text-gray-100"
+                                            {...props}
+                                        >
+                                            {children}
+                                        </strong>
+                                    );
+                                },
+                                a({ href, children, ...props }) {
+                                    // Check if this is a source citation link
+                                    const isCitation =
+                                        typeof children === "string" &&
+                                        children.match(/<\d+>/);
+
+                                    return (
+                                        <a
+                                            href={href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`${
+                                                isCitation
+                                                    ? "text-blue-400 hover:text-blue-300 no-underline font-semibold text-xs align-super hover:underline"
+                                                    : "text-blue-400 hover:text-blue-300 underline inline-flex items-center gap-1 hover:gap-1.5 transition-all"
+                                            }`}
+                                            title={props.title}
+                                            {...props}
+                                        >
+                                            {children}
+                                            {!isCitation && (
+                                                <ExternalLink className="w-3 h-3 inline" />
+                                            )}
+                                        </a>
+                                    );
+                                },
                             }}
                         >
-                            {message.content}
+                            {processedContent}
                         </ReactMarkdown>
                     </div>
+
                     <span
                         className={`text-xs text-gray-500 mt-1 ${
                             isUser ? "text-right" : "text-left"
