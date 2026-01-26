@@ -9,6 +9,7 @@ import ChatWindow from "@/components/chat/ChatWindow";
 import ModelSelector from "@/components/chat/ModelSelector";
 import { AIModel } from "@/lib/ai/modelTypes";
 import { Settings } from "lucide-react";
+import Unauthorized from "@/components/Unauthorized";
 
 interface DashboardClientProps {
     session: Session | null;
@@ -30,7 +31,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [selectedModel, setSelectedModel] = useState<AIModel>(
-        "gemini-2.5-flash-lite"
+        "llama-3.3-70b-versatile"
     );
     const [showModelSelector, setShowModelSelector] = useState(false);
 
@@ -65,6 +66,30 @@ export default function DashboardClient({ session }: DashboardClientProps) {
         setSelectedConversationId(id);
         setSidebarOpen(false);
     };
+    const handleDeleteConversation = async (id: string) => {
+        try {
+            const res = await fetch(`/api/conversations/${id}`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+            });
+            if (res.ok) {
+                setConversations((prev) =>
+                    prev.filter((conv) => conv.id !== id)
+                );
+
+                if (selectedConversationId === id) {
+                    setSelectedConversationId(null);
+                }
+            } else {
+                const error = await res.json();
+                console.error("Failed to delete conversation:", error);
+                alert(error.error || "Failed to delete conversation");
+            }
+        } catch (error) {
+            console.error("Failed to delete conversation:", error);
+            alert("Failed to delete conversation");
+        }
+    };
 
     const handleUpdateConversation = async (id: string, newTitle: string) => {
         try {
@@ -97,21 +122,15 @@ export default function DashboardClient({ session }: DashboardClientProps) {
     const handleMessageSent = () => {
         fetchConversations();
     };
-
     if (!session) {
         return (
-            <div className="text-center mt-20 px-4">
-                <p className="text-gray-200">{"You're not logged in."}</p>
-                <a
-                    href="/login"
-                    className="text-blue-400 underline hover:text-blue-300"
-                >
-                    Go to login
-                </a>
-            </div>
+            <Unauthorized
+                title="Session Expired"
+                message="Your session has ended. Please log in again to access your conversations and AI tools."
+                buttonText="Log In to Dashboard"
+            />
         );
     }
-
     return (
         <div className="flex h-screen bg-black overflow-hidden text-gray-100">
             {/* Mobile Overlay */}
@@ -227,6 +246,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                             selectedId={selectedConversationId}
                             onSelect={handleSelectConversation}
                             onUpdate={handleUpdateConversation}
+                            onDelete={handleDeleteConversation}
                         />
                     )}
                 </div>

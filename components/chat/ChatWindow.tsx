@@ -7,11 +7,18 @@ import MessageInput from "./MessageInput";
 import { Bot, Loader2 } from "lucide-react";
 import { AIModel } from "@/lib/ai/modelTypes";
 
+interface SearchSource {
+    title: string;
+    url: string;
+    snippet: string;
+}
+
 interface Message {
     id: string;
     role: string;
     content: string;
     createdAt: string;
+    sources?: SearchSource[];
 }
 
 interface ChatWindowProps {
@@ -35,7 +42,6 @@ export default function ChatWindow({
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const previousConversationIdRef = useRef<string | null>(null);
 
-    // Fetch messages when conversation changes
     useEffect(() => {
         if (!conversationId) {
             if (previousConversationIdRef.current !== null) {
@@ -78,7 +84,11 @@ export default function ChatWindow({
         }
     };
 
-    const sendMessage = async (content: string, model: AIModel) => {
+    const sendMessage = async (
+        content: string,
+        model: AIModel,
+        webSearchEnabled: boolean
+    ) => {
         if (!content.trim() || sending) return;
         setSending(true);
 
@@ -134,7 +144,8 @@ export default function ChatWindow({
                     body: JSON.stringify({
                         role: "user",
                         content,
-                        model: model, 
+                        model: model,
+                        webSearchEnabled,
                     }),
                 }
             );
@@ -153,7 +164,11 @@ export default function ChatWindow({
                     newMessages.push(data.user);
                 }
                 if (data.assistant) {
-                    newMessages.push(data.assistant);
+                    // Attach sources to assistant message
+                    newMessages.push({
+                        ...data.assistant,
+                        sources: data.sources || null,
+                    });
                 }
 
                 return [...withoutTemp, ...newMessages];
@@ -216,7 +231,7 @@ export default function ChatWindow({
                     onSend={sendMessage}
                     disabled={sending}
                     currentModel={selectedModel}
-                    onModelChange={() => {}} 
+                    onModelChange={() => {}}
                 />
             </div>
         </motion.div>

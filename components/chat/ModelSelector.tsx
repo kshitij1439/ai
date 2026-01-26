@@ -20,7 +20,7 @@ export default function ModelSelector({
         <select
             value={selectedModel}
             onChange={(e) => onModelChange(e.target.value as AIModel)}
-            className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+            className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white w-full"
         >
             <optgroup label=" Free - Google Gemini">
                 {MODEL_CATEGORIES.free.google.map((model) => (

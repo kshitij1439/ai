@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, KeyboardEvent, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles } from "lucide-react";
+import { Send, Loader2, Sparkles, Globe } from "lucide-react";
 import { AIModel } from "@/lib/ai/modelTypes";
 
 interface MessageInputProps {
-    onSend: (message: string, model: AIModel) => void;
+    onSend: (
+        message: string,
+        model: AIModel,
+        webSearchEnabled: boolean
+    ) => void;
     disabled?: boolean;
     currentModel: AIModel;
     onModelChange: (model: AIModel) => void;
@@ -18,6 +22,7 @@ export default function MessageInput({
     onModelChange,
 }: MessageInputProps) {
     const [message, setMessage] = useState("");
+    const [webSearchEnabled, setWebSearchEnabled] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
@@ -32,9 +37,8 @@ export default function MessageInput({
 
     const handleSend = () => {
         if (message.trim() && !disabled) {
-            onSend(message, currentModel);
+            onSend(message, currentModel, webSearchEnabled);
             setMessage("");
-            // Reset textarea height
             if (textareaRef.current) {
                 textareaRef.current.style.height = "auto";
             }
@@ -60,21 +64,39 @@ export default function MessageInput({
                     disabled={disabled}
                     className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none resize-none disabled:cursor-not-allowed px-3 py-3 min-h-[56px] max-h-[200px]"
                     rows={1}
-                    // style={{ scrollbarWidth: "thin" }}
                 />
 
-                <button
-                    onClick={handleSend}
-                    disabled={disabled || !message.trim()}
-                    className="flex-shrink-0 p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95 mb-1"
-                    title={disabled ? "Sending..." : "Send message (Enter)"}
-                >
-                    {disabled ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                        <Send className="w-5 h-5" />
-                    )}
-                </button>
+                <div className="flex items-center gap-2 mb-1">
+                    <button
+                        onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                        disabled={disabled}
+                        className={`flex-shrink-0 p-3 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 ${
+                            webSearchEnabled
+                                ? "bg-green-600 text-white hover:bg-green-500"
+                                : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        title={
+                            webSearchEnabled
+                                ? "Web search enabled"
+                                : "Enable web search"
+                        }
+                    >
+                        <Globe className="w-5 h-5" />
+                    </button>
+
+                    <button
+                        onClick={handleSend}
+                        disabled={disabled || !message.trim()}
+                        className="flex-shrink-0 p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
+                        title={disabled ? "Sending..." : "Send message (Enter)"}
+                    >
+                        {disabled ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <Send className="w-5 h-5" />
+                        )}
+                    </button>
+                </div>
             </div>
 
             <div className="flex items-center justify-between">
