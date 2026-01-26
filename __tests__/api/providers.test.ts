@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { GET } from "@/app/api/ai/providers/route";
-import { getAIService } from "@/lib/ai";
-const aiService = getAIService();
+
+const mockGetAvailableProviders = vi.hoisted(() => vi.fn<() => string[]>());
+
 vi.mock("@/lib/ai", () => ({
-    aiService: {
-        getAvailableProviders: vi.fn(),
-    },
+    getAIService: vi.fn(() => ({
+        getAvailableProviders: mockGetAvailableProviders,
+    })),
 }));
+
+import { GET } from "@/app/api/ai/providers/route";
 
 describe("GET /api/ai/providers", () => {
     beforeEach(() => {
@@ -15,9 +17,7 @@ describe("GET /api/ai/providers", () => {
 
     it("should return available providers", async () => {
         const mockProviders = ["openai", "anthropic", "google"];
-        vi.mocked(aiService.getAvailableProviders).mockReturnValue(
-            mockProviders
-        );
+        mockGetAvailableProviders.mockReturnValue(mockProviders);
 
         const response = await GET();
         const data = await response.json();
@@ -28,7 +28,7 @@ describe("GET /api/ai/providers", () => {
     });
 
     it("should handle errors gracefully", async () => {
-        vi.mocked(aiService.getAvailableProviders).mockImplementation(() => {
+        mockGetAvailableProviders.mockImplementation(() => {
             throw new Error("Service unavailable");
         });
 
