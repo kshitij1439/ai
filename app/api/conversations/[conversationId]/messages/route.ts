@@ -42,7 +42,7 @@ Respond with ONLY "YES" or "NO".`;
     }
 }
 
-export async function GET(req: Request, { params }: RouteContext) {
+export async function GET({ params }: RouteContext) {
     const { conversationId } = await params;
     const session = await getServerSession(authOptions);
 

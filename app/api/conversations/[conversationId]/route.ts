@@ -80,7 +80,6 @@ export async function PATCH(
 
 // Delete conversation
 export async function DELETE(
-    req: Request,
     context: { params: Promise<{ conversationId: string }> }
 ) {
     try {
@@ -130,7 +129,6 @@ export async function DELETE(
 
 // Get single conversation with messages
 export async function GET(
-    req: Request,
     context: { params: Promise<{ conversationId: string }> }
 ) {
     try {
