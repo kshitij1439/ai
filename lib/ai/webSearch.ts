@@ -1,4 +1,4 @@
-// webSearch.ts - Updated version
+
 import { aiService } from "./index";
 import { AIModel } from "./modelTypes";
 import { TavilySearchAPIRetriever } from "@langchain/community/retrievers/tavily_search_api";
@@ -27,26 +27,44 @@ export async function performWebSearch(query: string): Promise<WebSearchResult> 
         let formattedResults = "Sources:\n";
         
         documents.forEach((doc, index) => {
-            // Tavily might store URL in different metadata fields
+            const rawUrl = doc.metadata?.url || doc.metadata?.source || doc.metadata?.link || "";
+            
+            let validUrl = "";
+            if (rawUrl) {
+                try {
+                    if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+                        validUrl = `https://${rawUrl}`;
+                    } else {
+                        validUrl = rawUrl;
+                    }
+                    new URL(validUrl);
+                } catch {
+                    validUrl = "";
+                }
+            }
+            
             const title = doc.metadata?.title || doc.metadata?.source || "Untitled";
-            const url = doc.metadata?.url || doc.metadata?.source || doc.metadata?.link || "";
             const snippet = doc.pageContent;
             
-            console.log(`Source ${index + 1} metadata:`, doc.metadata); // Debug log
+            console.log(`Source ${index + 1} metadata:`, doc.metadata);
             
             // Store structured source data
-            sources.push({ title, url, snippet });
+            sources.push({ 
+                title, 
+                url: validUrl, 
+                snippet 
+            });
             
             // Format for AI context
             formattedResults += `${index + 1}. ${title}\n`;
             formattedResults += `   ${snippet}\n`;
-            if (url) {
-                formattedResults += `   URL: ${url}\n`;
+            if (validUrl) {
+                formattedResults += `   URL: ${validUrl}\n`;
             }
             formattedResults += "\n";
         });
 
-        console.log("📚 Extracted sources:", sources); // Debug log
+        console.log("📚 Extracted sources:", sources);
 
         return { formattedResults, sources };
     } catch (error) {
