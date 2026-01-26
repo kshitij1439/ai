@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET } from "@/app/api/ai/providers/route";
-import { aiService } from "@/lib/ai";
-
+import { getAIService } from "@/lib/ai";
+const aiService = getAIService();
 vi.mock("@/lib/ai", () => ({
     aiService: {
         getAvailableProviders: vi.fn(),
