@@ -1,7 +1,7 @@
 // app/api/ai/providers/route.ts
 import { NextResponse } from "next/server";
-import { aiService } from "@/lib/ai";
-
+import { getAIService } from "@/lib/ai";
+const aiService = getAIService();
 export async function GET() {
   try {
     const providers = aiService.getAvailableProviders();

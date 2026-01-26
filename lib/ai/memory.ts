@@ -331,5 +331,12 @@ class MemoryService {
         }
     }
 }
+let _memoryService: MemoryService | null = null;
 
-export const memoryService = new MemoryService();
+export function getMemoryService() {
+  if (!_memoryService) {
+    _memoryService = new MemoryService();
+  }
+  return _memoryService;
+}
+

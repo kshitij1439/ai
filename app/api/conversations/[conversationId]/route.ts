@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -79,9 +79,10 @@ export async function PATCH(
 }
 
 // Delete conversation
-export async function DELETE(context: {
-    params: Promise<{ conversationId: string }>;
-}) {
+export async function DELETE(
+    _req: NextRequest,
+    context: { params: Promise<{ conversationId: string }> }
+) {
     try {
         const session = await getServerSession(authOptions);
 

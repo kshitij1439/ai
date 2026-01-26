@@ -1,12 +1,13 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { aiService } from "@/lib/ai";
+import { getAIService } from "@/lib/ai";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
-import { memoryService } from "@/lib/ai/memory";
+import { getMemoryService } from "@/lib/ai/memory";
 import { AIModel } from "@/lib/ai/modelTypes";
 import { performWebSearch, shouldUseWebSearch } from "@/lib/ai/webSearch";
 
+const aiService = getAIService();
 interface RouteContext {
     params: Promise<{ conversationId: string }>;
 }
@@ -42,10 +43,7 @@ Respond with ONLY "YES" or "NO".`;
     }
 }
 
-export async function GET(
-    _req: Request,
-    { params }: RouteContext
-) {
+export async function GET(_req: Request, { params }: RouteContext) {
     const { conversationId } = await params;
     const session = await getServerSession(authOptions);
 
@@ -79,10 +77,7 @@ export async function GET(
     }
 }
 
-export async function POST(
-    req: Request,
-    { params }: RouteContext
-) {
+export async function POST(req: Request, { params }: RouteContext) {
     const { conversationId } = await params;
     const session = await getServerSession(authOptions);
 
@@ -168,11 +163,12 @@ export async function POST(
 
             if (useMemory) {
                 try {
-                    memoryContext = await memoryService.getConversationContext(
-                        session.user.id,
-                        content,
-                        conversationId
-                    );
+                    memoryContext =
+                        await getMemoryService().getConversationContext(
+                            session.user.id,
+                            content,
+                            conversationId
+                        );
                 } catch (error) {
                     console.error(
                         "Memory context error (non-blocking):",
@@ -279,14 +275,14 @@ Now respond to the user's current message.`,
                 }
 
                 Promise.all([
-                    memoryService.storeConversationMessage(
+                    getMemoryService().storeConversationMessage(
                         conversationId,
                         session.user.id,
                         content,
                         assistantResponse,
                         assistantMessage.id
                     ),
-                    memoryService.addMemory(
+                    getMemoryService().addMemory(
                         session.user.id,
                         [
                             { role: "user", content },

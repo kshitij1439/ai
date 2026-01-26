@@ -1,8 +1,8 @@
 
-import { aiService } from "./index";
+import { getAIService } from "./index";
 import { AIModel } from "./modelTypes";
 import { TavilySearchAPIRetriever } from "@langchain/community/retrievers/tavily_search_api";
-
+const aiService = getAIService();
 export interface SearchSource {
     title: string;
     url: string;

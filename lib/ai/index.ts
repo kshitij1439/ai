@@ -278,6 +278,13 @@ class AIService {
         return providers;
     }
 }
+let _aiService: AIService | null = null;
 
-export const aiService = new AIService();
+export function getAIService() {
+  if (!_aiService) {
+    _aiService = new AIService();
+  }
+  return _aiService;
+}
+
 export type { Message, AIModel, ChatOptions };
