@@ -5,7 +5,7 @@ interface Params {
     params: Promise<{ userId: string }>; // Change to Promise
 }
 
-export async function GET(req: Request, { params }: Params) {
+export async function GET(_req: Request,{ params }: Params) {
     const { userId } = await params; // Add await
 
     try {

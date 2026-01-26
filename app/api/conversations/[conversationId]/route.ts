@@ -79,10 +79,9 @@ export async function PATCH(
 }
 
 // Delete conversation
-export async function DELETE(
-    req: Request,
-    context: { params: Promise<{ conversationId: string }> }
-) {
+export async function DELETE(context: {
+    params: Promise<{ conversationId: string }>;
+}) {
     try {
         const session = await getServerSession(authOptions);
 
@@ -130,8 +129,8 @@ export async function DELETE(
 
 // Get single conversation with messages
 export async function GET(
-    req: Request,
-    context: { params: Promise<{ conversationId: string }> }
+    _req: Request,
+    { params }: { params: Promise<{ conversationId: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions);
@@ -142,8 +141,7 @@ export async function GET(
                 { status: 401 }
             );
         }
-
-        const { conversationId } = await context.params;
+        const { conversationId } = await params;
 
         const conversation = await prisma.conversation.findUnique({
             where: { id: conversationId },
