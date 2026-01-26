@@ -31,7 +31,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [selectedModel, setSelectedModel] = useState<AIModel>(
-        "gemini-2.5-flash-lite"
+        "llama-3.3-70b-versatile"
     );
     const [showModelSelector, setShowModelSelector] = useState(false);
 
