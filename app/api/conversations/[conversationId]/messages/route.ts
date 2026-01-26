@@ -42,7 +42,10 @@ Respond with ONLY "YES" or "NO".`;
     }
 }
 
-export async function GET({ params }: RouteContext) {
+export async function GET(
+    _req: Request,
+    { params }: RouteContext
+) {
     const { conversationId } = await params;
     const session = await getServerSession(authOptions);
 
@@ -76,7 +79,10 @@ export async function GET({ params }: RouteContext) {
     }
 }
 
-export async function POST(req: Request, { params }: RouteContext) {
+export async function POST(
+    req: Request,
+    { params }: RouteContext
+) {
     const { conversationId } = await params;
     const session = await getServerSession(authOptions);
 
@@ -133,7 +139,6 @@ export async function POST(req: Request, { params }: RouteContext) {
                 orderBy: { createdAt: "asc" },
             });
 
-            // Determine if web search is needed
             const needsWebSearch =
                 webSearchEnabled ||
                 (await shouldUseWebSearch(content, model as AIModel));
@@ -143,7 +148,7 @@ export async function POST(req: Request, { params }: RouteContext) {
                 try {
                     const searchResult = await performWebSearch(content);
                     webSearchResults = `\n\nWEB SEARCH RESULTS:\n${searchResult.formattedResults}`;
-                    searchSources = searchResult.sources; // Store sources
+                    searchSources = searchResult.sources;
 
                     console.log(
                         "✅ Web search completed with",
@@ -304,7 +309,7 @@ Now respond to the user's current message.`,
         return NextResponse.json({
             user: userMessage,
             assistant: assistantMessage,
-            sources: searchSources, // Include sources in response
+            sources: searchSources,
         });
     } catch (error) {
         console.error("Error creating message:", error);

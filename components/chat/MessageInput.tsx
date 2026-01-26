@@ -72,7 +72,7 @@ export default function MessageInput({
                         disabled={disabled}
                         className={`flex-shrink-0 p-3 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 ${
                             webSearchEnabled
-                                ? "bg-green-600 text-white hover:bg-green-500"
+                                ? "bg-blue-600 text-white hover:bg-blue-500"
                                 : "bg-gray-700 text-gray-400 hover:bg-gray-600"
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                         title={
