@@ -259,7 +259,7 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                 {/* <div className="flex-1 flex flex-col w-full lg:w-auto bg-black"> */}
                 {/* Mobile Header */}
                 {conversations.length > 0 && (
-                    <div className="absolute z-10 top-0 lg:hidden flex items-center gap-3 p-4 bg-gray-900 border-b border-gray-800">
+                    <div className="absolute z-10 top-0 lg:hidden flex items-center gap-3 p-3 bg-gray-900/50 border-2 border-gray-900 rounded-xl m-2">
                         <button
                             onClick={() => setSidebarOpen(true)}
                             className="text-gray-400 hover:text-white"
