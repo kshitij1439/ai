@@ -9,7 +9,7 @@ interface RateLimitEntry {
   // Cleanup old entries every 5 minutes
   setInterval(() => {
     const now = Date.now();
-    for (const [key, value] of rateLimitStore.entries()) {
+    for (const [key, value] of Array.from(rateLimitStore.entries())) {
       if (now > value.resetAt) {
         rateLimitStore.delete(key);
       }
