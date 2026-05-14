@@ -112,6 +112,7 @@ class AIService {
                 "phi3",
                 "mistral",
                 "codellama",
+                "qwen2.5:14b",
             ].includes(model)
         ) {
             if (!this.ollamaModel) {

@@ -132,7 +132,10 @@ export default function DashboardClient({ session }: DashboardClientProps) {
         );
     }
     return (
-        <div className="flex h-screen bg-black overflow-hidden text-gray-100">
+        <div
+            className="flex h-screen overflow-hidden text-white
+        bg-gradient-to-br from-gray-900/80 via-black to-gray-900/90"
+        >
             {/* Mobile Overlay */}
             {sidebarOpen && (
                 <div
@@ -251,12 +254,12 @@ export default function DashboardClient({ session }: DashboardClientProps) {
                     )}
                 </div>
             </div>
-
-            {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col w-full lg:w-auto bg-black">
+            <div className="flex-1 flex flex-col w-full lg:w-auto  backdrop-blur-sm">
+                {/* Main Chat Area */}
+                {/* <div className="flex-1 flex flex-col w-full lg:w-auto bg-black"> */}
                 {/* Mobile Header */}
                 {conversations.length > 0 && (
-                    <div className="absolute z-10 top-0 lg:hidden flex items-center gap-3 p-4 bg-gray-900 border-b border-gray-800">
+                    <div className="absolute z-10 top-0 lg:hidden flex items-center gap-3 p-3 bg-gray-900/50 border-2 border-gray-900 rounded-xl m-2">
                         <button
                             onClick={() => setSidebarOpen(true)}
                             className="text-gray-400 hover:text-white"

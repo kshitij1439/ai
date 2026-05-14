@@ -211,7 +211,7 @@ export default function ChatWindow({
                 ) : messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center">
                         <Bot className="w-20 h-20 text-purple-400 mb-4" />
-                        <p className="text-gray-400">Send a message to begin</p>
+                        <p className="text-gray-400">How can I help you today?</p>
                         <p className="text-gray-600 text-sm mt-2">
                             Using: {selectedModel}
                         </p>

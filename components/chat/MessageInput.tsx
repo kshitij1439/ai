@@ -72,7 +72,7 @@ export default function MessageInput({
                         disabled={disabled}
                         className={`flex-shrink-0 p-3 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 ${
                             webSearchEnabled
-                                ? "bg-blue-600 text-white hover:bg-blue-500"
+                                ? "bg-blue-600/40 text-white hover:bg-blue-500/40"
                                 : "bg-gray-700 text-gray-400 hover:bg-gray-600"
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                         title={
@@ -87,7 +87,7 @@ export default function MessageInput({
                     <button
                         onClick={handleSend}
                         disabled={disabled || !message.trim()}
-                        className="flex-shrink-0 p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
+                        className="flex-shrink-0 p-3 bg-blue-600/40 text-white rounded-xl hover:bg-blue-500/40 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
                         title={disabled ? "Sending..." : "Send message (Enter)"}
                     >
                         {disabled ? (
@@ -98,7 +98,7 @@ export default function MessageInput({
                     </button>
                 </div>
             </div>
-
+{/* 
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                     <kbd className="px-2 py-1 bg-gray-800 rounded border border-gray-700">
@@ -116,7 +116,7 @@ export default function MessageInput({
                     <Sparkles className="w-3 h-3" />
                     <span>Powered by {currentModel}</span>
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 }

@@ -115,6 +115,7 @@ export const FREE_MODELS = [
     "gemini-2.5-flash-lite",
     "llama-3.3-70b-versatile",
     "mixtral-8x7b-65536",
+    "qwen2.5:14b",
 ] as const;
 
 export type FreeAIModel = (typeof FREE_MODELS)[number];
@@ -123,6 +124,7 @@ export const MODEL_CATEGORIES = {
     free: {
         google: ["gemini-2.5-flash-lite"],
         groq: ["llama-3.3-70b-versatile", "mixtral-8x7b-65536"],
+        ollama: ["qwen2.5:14b"],
     },
 } as const satisfies {
     free: Record<string, readonly FreeAIModel[]>;
@@ -132,4 +134,5 @@ export const MODEL_DISPLAY_NAMES = {
     "gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite (FREE)",
     "llama-3.3-70b-versatile": "Llama 3.3 70B (Groq)",
     "mixtral-8x7b-65536": "Mixtral 8×7B 65k (Groq)",
+    "qwen2.5:14b": "Qwen 2.5 14B (Self-hosted GCP)",
 } satisfies Record<AIModel, string>;

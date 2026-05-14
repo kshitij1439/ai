@@ -82,7 +82,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 {/* Avatar */}
                 <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        isUser ? "bg-blue-600" : "bg-purple-600"
+                        isUser ? "bg-blue-600/40" : "bg-blue-600/60"
                     }`}
                 >
                     <span className="text-white text-sm font-medium">
